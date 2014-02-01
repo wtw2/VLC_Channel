@@ -15,7 +15,7 @@
 	
 	{
 		"id":		"vlc_page",
-		"label": 	"VLC Host {/Path/}Page",
+		"label": 	"VLC Host {/Path/}Page -> space for none",
 		"type": 	"text",
 		"default": 	"stream.ts"
 	},

@@ -1,7 +1,10 @@
 # import for regular expressions
 import re
 import datetime
+# for more complex JSON
 #import demjson
+# for urlopen
+#import urllib
 
 # http://dev.plexapp.com/docs/api/constkit.html
 
@@ -35,7 +38,6 @@ ST_URL_MAP   = 'http://%s:%s%s' % (ST_IP_MAP, ST_PORT_MAP, ST_PAGE_MAP)
 RE_URL_MAP   = Regex('^%s$' % (ST_URL_MAP))
 #ST_URL_MAP   = '^http://(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[1-9][0-9]{0,4}((/)(?(2)(?:[0-9a-zA-Z_-]+/)+))?(?(2)|/?)([0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?$'
 
-#ST_URL_MAP = Regex('^(/[0-9a-zA-Z_\-]*)*(?(1)/)(?:[0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?((/)(?(2)(?:[0-9a-zA-Z_-]+/)+))?(?(2)|/?)([0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?$')
 
 METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-04-25T14:00:46.000Z","updated":"2014-01-27T02:24:39.000Z","uploader":"Unknown","category":"Various","title":"VLC Video Stream","description":"This video is being streamed by VLC player from a direct video URL.","thumbnail":{"sqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/default.jpg","hqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/hqdefault.jpg"},"player":{"default":"http://www.youtube.com/watch?v=Hx9TwM4Pmhc&feature=youtube_gdata_player","mobile":"http://m.youtube.com/details?v=Hx9TwM4Pmhc"},"content":{"5":"http://www.youtube.com/v/Hx9TwM4Pmhc?version=3&f=videos&app=youtube_gdata","1":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp","6":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp"},"duration":3600,"aspectRatio":"widescreen","rating":4.1,"likeCount":"1","ratingCount":1,"viewCount":1,"favoriteCount":1,"commentCount":0,"accessControl":{"comment":"allowed","commentVote":"allowed","videoRespond":"moderated","rate":"allowed","embed":"allowed","list":"allowed","autoPlay":"allowed","syndicate":"allowed"}}}'
 
@@ -75,7 +77,10 @@ def ValidatePrefs():
 	Log.Debug("PORT  vlc_port= "+match.group(0))
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
-		str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
+		if str_page == ' ':
+			str_page = ''
+		else:
+			str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
 	match = re.search(RE_PAGE_MAP, str_page)
 	if match == None:
 		return ObjectContainer(header="Error", message="That is not a valid page.")
@@ -87,6 +92,12 @@ def ValidatePrefs():
 		return ObjectContainer(header="Error", message="That is does not result in a valid url.")
 	Log.Debug("URL  vlc_url= "+match.group(0))
 	return
+
+# cannot use this in this method
+# Force set a prference:
+# u = urllib.urlopen('http://{PMS_IP}:32400/:/plugins/{PLUGIN STRING}/prefs/set?{VARIABLE}={VALUE}')
+# set vlc_page to defualt >>
+# u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_page=')
 	
 ####################################################################################################
 # the following line performs the same as the Plugin.AddPrefixHandler() method above
@@ -112,7 +123,10 @@ def MainMenu():
 #	url_vlc = 'http://%s:%s' % (Prefs['vlc_host'], Prefs['vlc_port']) # dynamic
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
-		str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
+		if str_page == ' ':
+			str_page = ''
+		else:
+			str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
 	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port'], str_page) # dynamic
 	Log.Debug("### vlc_url= "+url_vlc)
 	
@@ -127,7 +141,7 @@ def MainMenu():
 # the following strategy does not appear to work (yet)
 #	vco = CreateVideoClipObject(url_vlc, datetime.date.today())
 	oc.add(vco)
-	# provide for changing the host and port
+	# provide for changing the host and port etc.
 	oc.add(PrefsObject(title = L('Preferences')))
 	
 	return oc
@@ -209,8 +223,6 @@ def CreateVideoClipObject(url, originally_available_at, include_container=False)
 	vco = VideoClipObject(
 		key = Callback(CreateVideoClipObject, url=url, originally_available_at=originally_available_at, include_container=True),
 		rating_key = url,
-#		key = Callback(Callback(PlayVideo, url=url, default_fmt='360p'),
-#		rating_key = url,
 		title = title,
 		summary = summary,
 		thumb = Resource.ContentsOfURLWithFallback(thumb),
