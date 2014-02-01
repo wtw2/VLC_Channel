@@ -1,0 +1,23 @@
+I use VLC to transcode and stream back out an internet stream feed from a direct video file URL, like:
+http://cs514220v4.vk.me/u5723140/videos/88479e1a6c.360.mp4   (which no longer exists)
+
+VLC output parameters:
+
+:sout=#transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}:http{mux=ts,dst=:11223/} :sout-all :sout-keep
+
+
+
+When I use the URL service using VideoClipObject() and the URL of "http://127.0.0.1:11223" (the VLC stream out) it works.
+If I try to change everything for the URL of "http://127.0.0.1:11223/stream.ts" it no longer works.
+What am I doing wrong???
+
+
+When I don't use the URL service: see the commented line: vco = CreateVideoClipObject(url_vlc, datetime.date.today())
+It does not work.  I don't really understand if this is set up correctly either.
+What am I doing wrong???
+
+
+In ValidatePrefs(); the: return ObjectContainer(header="Error", message="That is not a valid IP port.")
+does not result in a popup on the user interaface informing the user of the error.
+How do you generate such an error message popup?
+

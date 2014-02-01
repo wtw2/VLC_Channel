@@ -1,0 +1,43 @@
+[
+	{
+		"id": 		"vlc_host",
+		"label": 	"VLC Host IP",
+		"type": 	"text",
+		"default": 	"127.0.0.1"
+	},
+	
+	{
+		"id":		"vlc_port",
+		"label": 	"VLC Host Port",
+		"type": 	"text",
+		"default": 	"11223"
+	},
+	
+	{
+		"id":		"vlc_page",
+		"label": 	"VLC Host {/Path/}Page",
+		"type": 	"text",
+		"default": 	"stream.ts"
+	},
+	
+	{
+		"id":		"drw_url",
+		"label": 	"Direct URL",
+		"type": 	"text",
+		"default": 	"http://cs514220v4.vk.me/u5723140/videos/88479e1a6c.360.mp4"
+	},
+	
+	{
+		"id":		"usr_name",
+		"label": 	"Username",
+		"type": 	"text",
+		"default": 	"wtw"
+	},
+	
+	{
+		"id":		"password",
+		"label": 	"Password",
+		"type": 	"text",
+		"default": 	"ok"
+	}
+]

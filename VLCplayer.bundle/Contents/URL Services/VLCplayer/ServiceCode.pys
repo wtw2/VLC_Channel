@@ -1,0 +1,153 @@
+# import for regular expressions
+import re
+import datetime
+
+####################################################################################################
+# https://forums.plex.tv/index.php/topic/62229-direct-play-formats/
+# Posted 03 March 2013 - 07:08 PM
+#
+# The following video formats will Direct Play inside the Plex for Windows app.  
+# Other formats will be transcoded or remuxed to mpegts/h264/aac using HTTP Live Streaming:
+# 
+# Containers: mp4, mov
+# Video codecs: h264, mpeg4
+# Audio codecs: aac, ac3, eac3,mp3
+#
+# Containers: mpegts
+# Video codecs: h264
+# Audio codecs: aac, ac3, eac3, mp3, mp2
+#
+# Containers: asf
+# Video codecs: vc1, wmv3, wmv2
+# Audio codecs: wmav2, wmapro, wmavoice
+#
+# Containers: avi
+# Video codecs: mpeg4, msmpeg4, mjpeg
+# Audio codecs: mp3, ac3, eac3, mp2
+#
+# The following music formats will Direct Play inside the Plex for Windows app.  
+# Other formats will be transcoded to streaming MP3:
+# 
+# Containers: asf
+# AudioCodecs: wmav2, wmapro, wmavoice
+#
+# Containers: mp4
+# AudioCodecs: aac
+#
+# Containers: mp3
+# AudioCodecs: mp3
+#
+####################################################################################################
+
+DEFAULT_URL   = 'http://127.0.0.1:11223'
+RE_URL_MAP    = Regex('^http://(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[1-9][0-9]{0,4}$')
+RE_URL_MAP2   = Regex('^http://(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[1-9][0-9]{0,4}(?:/[0-9a-zA-Z_\-]*)*(?:/[0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?$')
+
+VLC_VIDEO_DETAILS = 'http://gdata.youtube.com/feeds/api/videos/%s?v=2&alt=jsonc'
+VLC_VIDEO_FORMATS = ['360p',	'720p',		'1080p']
+VLC_FMT           = [18,		22,			37]
+VLC_CONTAINERS    = ['mpegts',	'mpegts',	'mpegts']
+VLC_VIDEOCODEC    = ['h264',	'h264',		'h264']
+VLC_AUDIOCODEC    = ['mp3',		'mp3',		'mp3']
+VLC_VIDEORES      = ['360',		'720',		'1080']
+VLC_STREAM_OPT    = 'mpegts'
+METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-04-25T14:00:46.000Z","updated":"2014-01-27T02:24:39.000Z","uploader":"Unknown","category":"Various","title":"VLC Video Stream","description":"This video is being streamed by VLC player from a direct video URL.","thumbnail":{"sqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/default.jpg","hqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/hqdefault.jpg"},"player":{"default":"http://www.youtube.com/watch?v=Hx9TwM4Pmhc&feature=youtube_gdata_player","mobile":"http://m.youtube.com/details?v=Hx9TwM4Pmhc"},"content":{"5":"http://www.youtube.com/v/Hx9TwM4Pmhc?version=3&f=videos&app=youtube_gdata","1":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp","6":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp"},"duration":517,"aspectRatio":"widescreen","rating":4.9,"likeCount":"9857","ratingCount":1,"viewCount":1,"favoriteCount":1,"commentCount":0,"accessControl":{"comment":"allowed","commentVote":"allowed","videoRespond":"moderated","rate":"allowed","embed":"allowed","list":"allowed","autoPlay":"allowed","syndicate":"allowed"}}}'
+
+####################################################################################################
+def NormalizeURL(url):
+
+	match = re.search(RE_URL_MAP2, url)
+	if match:
+		return match.group(0)
+	else:
+		return DEFAULT_URL
+
+####################################################################################################
+def MetadataObjectForURL(url):
+# The parameter url will already be normalized by: NormalizeURL()
+
+	try:
+		details = JSON.ObjectFromString(METADATA, encoding=None)['data']
+	except:
+		raise Ex.MediaNotAuthorized
+	
+	try:
+		title = details['title']
+	except:
+		title = 'No title'
+
+	try:
+		summary = details['description']
+	except:
+		summary = 'No description'
+
+	thumb = ''
+	
+	try:
+		rating = details['rating'] * 2
+	except:
+		rating = None
+	
+	try:
+		tags = details['tags']
+	except:
+		tags = []
+	
+	try:
+		duration = details['duration'] * 1000
+	except:
+		raise Ex.MediaNotAvailable
+	if not isinstance(duration, int):
+		raise Ex.MediaNotAvailable
+	
+	try:
+		# can be more than one
+		genres = [details['category']]
+	except:
+		genres = ['Unknown']
+	
+	return VideoClipObject(
+		title = title,
+		summary = summary,
+		thumb = Resource.ContentsOfURLWithFallback(thumb),
+		rating = rating,
+		tags = tags,
+		originally_available_at = datetime.date.today(),
+		duration = duration,
+		genres = genres
+	)
+#		genres = [details['category']]
+
+####################################################################################################
+def MediaObjectsForURL(url):
+# The parameter url will already be normalized by: NormalizeURL()
+
+	ret = []
+	
+	fmts = list(VLC_VIDEO_FORMATS)
+	fmts.reverse()
+	
+	for fmt in fmts:
+		index = VLC_VIDEO_FORMATS.index(fmt)
+		
+		ret.append(MediaObject(
+			parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt=fmt))],
+			container = VLC_CONTAINERS[index],
+			video_codec = VLC_VIDEOCODEC[index],
+			audio_codec = VLC_AUDIOCODEC[index],
+			video_resolution = VLC_VIDEORES[index],
+			optimized_for_streaming = (VLC_CONTAINERS[index] == VLC_STREAM_OPT),
+		))
+	
+	return ret
+	
+####################################################################################################
+@indirect
+def PlayVideo(url=None, default_fmt=None, **kwargs):
+	
+	if not url:
+		return None
+	return IndirectResponse(VideoClipObject, key=url)
+#	return Redirect(url) # this results in a file download of the stream
+
+####################################################################################################
