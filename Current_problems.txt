@@ -10,6 +10,7 @@ VLC output parameters:
 When I use the URL service using VideoClipObject() and the URL of "http://127.0.0.1:11223" (the VLC stream out) it works.
 If I try to change everything for the URL of "http://127.0.0.1:11223/stream.ts" it no longer works.
 What am I doing wrong???
+**** This is now fixed. Regex error.
 
 
 When I don't use the URL service: see the commented line: vco = CreateVideoClipObject(url_vlc, datetime.date.today())
