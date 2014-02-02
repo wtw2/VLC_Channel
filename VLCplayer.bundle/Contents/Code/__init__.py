@@ -4,7 +4,7 @@ import datetime
 # for more complex JSON
 #import demjson
 # for urlopen
-#import urllib
+import urllib
 
 # http://dev.plexapp.com/docs/api/constkit.html
 
@@ -31,13 +31,12 @@ ST_PORT_MAP  = '[1-9][0-9]{0,4}'
 RE_PORT_MAP  = Regex('^%s$' % (ST_PORT_MAP))
 ST_PATH_MAP  = '((/)(?(2)(?:[0-9a-zA-Z_-]+/)+))?'
 ST_FILE_MAP  = '([0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?'
-ST_PAGE_MAP  = '%s(?(2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (no slashes)
+ST_PAGE_MAP  = '%s(?(2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (initial slash optional)
 RE_PAGE_MAP  = Regex('^%s$' % (ST_PAGE_MAP)) # path is group(1), file is group(3)
 #ST_PAGE_MAP  = '((/)(?(2)(?:[0-9a-zA-Z_-]+/)+))?(?(2)|/?)([0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?') # path is group(1), file is group(3)
 ST_URL_MAP   = 'http://%s:%s%s' % (ST_IP_MAP, ST_PORT_MAP, ST_PAGE_MAP)
 RE_URL_MAP   = Regex('^%s$' % (ST_URL_MAP))
 #ST_URL_MAP   = '^http://(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[1-9][0-9]{0,4}((/)(?(2)(?:[0-9a-zA-Z_-]+/)+))?(?(2)|/?)([0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?$'
-
 
 METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-04-25T14:00:46.000Z","updated":"2014-01-27T02:24:39.000Z","uploader":"Unknown","category":"Various","title":"VLC Video Stream","description":"This video is being streamed by VLC player from a direct video URL.","thumbnail":{"sqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/default.jpg","hqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/hqdefault.jpg"},"player":{"default":"http://www.youtube.com/watch?v=Hx9TwM4Pmhc&feature=youtube_gdata_player","mobile":"http://m.youtube.com/details?v=Hx9TwM4Pmhc"},"content":{"5":"http://www.youtube.com/v/Hx9TwM4Pmhc?version=3&f=videos&app=youtube_gdata","1":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp","6":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp"},"duration":3600,"aspectRatio":"widescreen","rating":4.1,"likeCount":"1","ratingCount":1,"viewCount":1,"favoriteCount":1,"commentCount":0,"accessControl":{"comment":"allowed","commentVote":"allowed","videoRespond":"moderated","rate":"allowed","embed":"allowed","list":"allowed","autoPlay":"allowed","syndicate":"allowed"}}}'
 
@@ -47,6 +46,8 @@ METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-
 # String.Localization() => L()  ????
 ####################################################################################################
 def Start():
+	Log.Debug("EXECUTING: Start()")
+
 	Plugin.AddPrefixHandler(PREFIX, MainMenu, TITLE, ICON, ART)
 
 	ObjectContainer.title1 = NAME
@@ -61,20 +62,89 @@ def Start():
 	TrackObject.thumb = R(ICON)
 
 	HTTP.CacheTime = CACHE_1HOUR
+	
+	# Store user "globals" in the Dict
+	Dict["Initialized"] = False
+	Dict["Today"] = datetime.date.today()
+	#InitializePrefs() => can't do this here.  It is too early.  Moved to MainMenu()
 
+####################################################################################################
+@route('/video/vlcplayer/InitializePrefs')
+def InitializePrefs():
+# All non-compliant Prefs must be reset to their default values
+	if Dict["Initialized"]:
+		return
+	Log.Debug("EXECUTING: InitializePrefs()")
+	Dict["Initialized"] = True
+
+	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
+	if match == None:
+		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_host=')
+
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port'])
+	if match == None:
+		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_port=')
+		
+	match = re.search(RE_PAGE_MAP, Prefs['vlc_page'])
+	if match == None:
+		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_page=')
+	return
+
+# Force set a prference:
+# u = urllib.urlopen('http://{PMS_IP}:32400/:/plugins/{PLUGIN STRING}/prefs/set?{VARIABLE}={VALUE}')
+# set vlc_page to defualt >>
+# u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_page=')
+	
 ####################################################################################################
 def ValidatePrefs():
 # NOTE: MessageContainer() is deprecated
+# NOTE: Returning an ObjectContainer() with an error does not display the message.
+#       Probably because Plex is already in a popup (Preferences).
+	Log.Debug("EXECUTING: ValidatePrefs()")
 	Log.Debug("***************************************")
 	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
+	if match != None:
+		Log.Debug("HOST  vlc_host= "+match.group(0))
+	else:
+		Log.Debug("HOST  vlc_host= INVALID")
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port'])
+	if match != None:
+		Log.Debug("PORT  vlc_port= "+match.group(0))
+	else:
+		Log.Debug("HOST  vlc_port= INVALID")
+	str_page = Prefs['vlc_page']
+	if str_page[0] != '/':
+		if str_page == ' ':
+			str_page = ''
+		else:
+			str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
+	match = re.search(RE_PAGE_MAP, str_page)
+	if match != None:
+		Log.Debug("PAGE  vlc_page= "+match.group(0))
+	else:
+		Log.Debug("HOST  vlc_page= INVALID")
+
+	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port'], str_page) # dynamic
+	match = re.search(RE_URL_MAP, url_vlc)
+	if match != None:
+		Log.Debug("URL  vlc_url= "+match.group(0))
+	else:
+		Log.Debug("HOST  vlc_url= INVALID")
+	Log.Debug("***************************************")
+	return
+	
+####################################################################################################
+@route('/video/vlcplayer/PrefValidationNotice')
+def PrefValidationNotice():
+	Log.Debug("EXECUTING: PrefValidationNotice()")
+	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
 	if match == None:
-		return ObjectContainer(header="Error", message="This is not a valid IP address.")
-#		return MessageContainer("Error", "That is not a valid IP address.")
-	Log.Debug("HOST  vlc_host= "+match.group(0))
+		return ObjectContainer(header="Settings Error", message="The IP address setting is invalid.", no_cache=True)
+
 	match = re.search(RE_PORT_MAP, Prefs['vlc_port'])
 	if match == None:
-		return ObjectContainer(header="Error", message="That is not a valid IP port.")
-	Log.Debug("PORT  vlc_port= "+match.group(0))
+		return ObjectContainer(header="Settings Error", message="The IP port setting is invalid.", no_cache=True)
+
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
 		if str_page == ' ':
@@ -83,43 +153,42 @@ def ValidatePrefs():
 			str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
 	match = re.search(RE_PAGE_MAP, str_page)
 	if match == None:
-		return ObjectContainer(header="Error", message="That is not a valid page.")
-	Log.Debug("PAGE  vlc_page= "+match.group(0))
+		return ObjectContainer(header="Settings Error", message="The page setting is invalid.", no_cache=True)
 
 	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port'], str_page) # dynamic
 	match = re.search(RE_URL_MAP, url_vlc)
 	if match == None:
-		return ObjectContainer(header="Error", message="That is does not result in a valid url.")
-	Log.Debug("URL  vlc_url= "+match.group(0))
-	return
+		return ObjectContainer(header="Settings Error", message="The settings do not result in a valid url.", no_cache=True)
+	Log.Debug("PASSED: PrefValidationNotice()")
+	return None
 
-# cannot use this in this method
-# Force set a prference:
-# u = urllib.urlopen('http://{PMS_IP}:32400/:/plugins/{PLUGIN STRING}/prefs/set?{VARIABLE}={VALUE}')
-# set vlc_page to defualt >>
-# u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_page=')
-	
 ####################################################################################################
 # the following line performs the same as the Plugin.AddPrefixHandler() method above
 #@handler(PREFIX, TITLE, thumb=ICON, art=ART)
 def MainMenu():
+
+	InitializePrefs()
+
+	do = DirectoryObject(key = Callback(SecondMenu), title = "Example Directory")
+
+	voc = PrefValidationNotice()
+	if not voc == None:
+		voc.add(do)
+		# attach the settings/preferences
+		voc.add(PrefsObject(title = L('Preferences')))
+		Log.Debug("FAILED: PrefValidationNotice()")
+		return voc
 # properties can be filled by parameters in the "New" or set as properties above
 #	oc = ObjectContainer(title1=NAME, art=R(ART))
 
 	oc = ObjectContainer()
-	do = DirectoryObject(key = Callback(SecondMenu), title = "Example Directory")
 	oc.add(do)
-#	eo = createEpisodeObject(
-#		url=VLCURL,
-#		title=TITLE,
-#		summary=TITLE,
-#		thumb=R(ICON),
-#		rating_key=TITLE)
-#	oc.add(eo)
 
-	# Log current settings/preferences
+	# Log current settings/preferences click icon
+	Log.Debug("#######################################")
 	Log.Debug("### vlc_host= "+Prefs['vlc_host'])
 	Log.Debug("### vlc_port= "+Prefs['vlc_port'])
+	Log.Debug("### vlc_port= "+Prefs['vlc_page'])
 #	url_vlc = 'http://%s:%s' % (Prefs['vlc_host'], Prefs['vlc_port']) # dynamic
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
@@ -129,6 +198,7 @@ def MainMenu():
 			str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
 	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port'], str_page) # dynamic
 	Log.Debug("### vlc_url= "+url_vlc)
+	Log.Debug("#######################################")
 	
 # the following strategy does appear to work
 	mo = MediaObject(parts=[PartObject(key=HTTPLiveStreamURL(url_vlc))])
@@ -139,7 +209,8 @@ def MainMenu():
 	vco.add(mo)
 	
 # the following strategy does not appear to work (yet)
-#	vco = CreateVideoClipObject(url_vlc, datetime.date.today())
+#	vco = CreateVideoClipObject(url_vlc, Dict["Today"]) # date only
+#	vco = CreateVideoClipObject(url_vlc, datetime.datetime.today())
 	oc.add(vco)
 	# provide for changing the host and port etc.
 	oc.add(PrefsObject(title = L('Preferences')))
@@ -209,14 +280,25 @@ def CreateVideoClipObject(url, originally_available_at, include_container=False)
 	except:
 		genres = ['Unknown genre']
 	
-#	types = demjson.encode(Container) # Framework.api.constkit.Containers
+#	types = demjson.encode(Container) # Framework.api.constkit.Containers -> can't convert to JSON
 #	Log.Debug("### "+Container.MP4)
+
+	# When re-entering CreateVideoClipObject(), originally_available_at can become a string object instead of a datetime.date or a datetime.datetime object
 	if isinstance(originally_available_at, str):
+		# someting changes the space between the date and time to a '+' when using datetime
+		originally_available_at = originally_available_at.replace('+',' ')
+		originally_available_at = originally_available_at[0:10] # for date only
 		Log.Debug("### STR OAA= "+originally_available_at)
-		originally_available_at = datetime.datetime.strptime(originally_available_at, '%Y-%m-%d')
+		originally_available_at = datetime.datetime.strptime(originally_available_at, '%Y-%m-%d') # for date only
+#		#originally_available_at = datetime.datetime.strptime(originally_available_at, '%Y-%m-%d %H:%M:%S.%f') => %f is not supported
+#		nofrag, frag = originally_available_at.split('.')
+#		nofrag_dt = datetime.datetime.strptime(nofrag, "%Y-%m-%d %H:%M:%S")
+#		originally_available_at = nofrag_dt.replace(microsecond=int(frag))
+		Log.Debug("### STR->DATE OAA= "+originally_available_at.isoformat())
 	else:
 		if isinstance(originally_available_at, datetime.date):
-			Log.Debug("### DATE OAA= "+originally_available_at.strftime('%m/%d/%Y'))
+			Log.Debug("### DATE OAA= "+originally_available_at.strftime('%Y-%m-%d')) # for date only
+#			Log.Debug("### DATE OAA= "+originally_available_at.isoformat())
 		else:
 			Log.Debug("### DATE OAA= ERROR")
 	
@@ -250,7 +332,7 @@ def CreateVideoClipObject(url, originally_available_at, include_container=False)
 		return vco
 		
 ####################################################################################################
-@indirect
+@route('/video/vlcplayer/PlayVideo')
 def PlayVideo(url=None, default_fmt=None, **kwargs):
 	
 	if not url:

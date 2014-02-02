@@ -109,7 +109,7 @@ def MetadataObjectForURL(url):
 		# can be more than one
 		genres = [details['category']]
 	except:
-		genres = ['Unknown']
+		genres = ['Unknown genre']
 	
 	return VideoClipObject(
 		title = title,

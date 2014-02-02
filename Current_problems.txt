@@ -10,15 +10,25 @@ VLC output parameters:
 When I use the URL service using VideoClipObject() and the URL of "http://127.0.0.1:11223" (the VLC stream out) it works.
 If I try to change everything for the URL of "http://127.0.0.1:11223/stream.ts" it no longer works.
 What am I doing wrong???
-**** This is now fixed. Regex error.
+**** This is now fixed. Regex error was corrected.
 
 
-When I don't use the URL service: see the commented line: vco = CreateVideoClipObject(url_vlc, datetime.date.today())
+
+When I don't use the URL service: see the commented line: vco = CreateVideoClipObject(url_vlc, Dict["Today"]) # date only
 It does not work.  I don't really understand if this is set up correctly either.
 What am I doing wrong???
+
+*** Changed to that it at least gets to the JW Player.  It then throws an error:
+    el = obj._to_xml()
+  File "C:\Users\User\AppData\Local\Plex Media Server\Plug-ins\Framework.bundle\Contents\Resources\Versions\2\Python\Framework\api\objectkit.py", line 496, in _to_xml
+    raise Framework.exceptions.AttributeException('If no URL is provided, the key and rating_key attributes must be set.')
+AttributeException: If no URL is provided, the key and rating_key attributes must be set.
+
 
 
 In ValidatePrefs(); the: return ObjectContainer(header="Error", message="That is not a valid IP port.")
 does not result in a popup on the user interaface informing the user of the error.
 How do you generate such an error message popup?
+*** This is partially fixed.  It displays the error message, but when the pref is corrected, it will display the message again sometimes; like the first time it is corrected and when you return to the MainMenu.
+It is like the object is still attached to the main menu.
 
