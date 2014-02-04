@@ -56,6 +56,7 @@ VLC_VIDEOCODEC    = ['h264',	'h264',		'h264']
 VLC_AUDIOCODEC    = ['mp3',		'mp3',		'mp3']
 VLC_VIDEORES      = ['360',		'720',		'1080']
 VLC_STREAM_OPT    = 'mpegts'
+
 METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-04-25T14:00:46.000Z","updated":"2014-01-27T02:24:39.000Z","uploader":"Unknown","category":"Various","title":"VLC Video Stream","description":"This video is being streamed by VLC player from a direct video URL.","thumbnail":{"sqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/default.jpg","hqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/hqdefault.jpg"},"player":{"default":"http://www.youtube.com/watch?v=Hx9TwM4Pmhc&feature=youtube_gdata_player","mobile":"http://m.youtube.com/details?v=Hx9TwM4Pmhc"},"content":{"5":"http://www.youtube.com/v/Hx9TwM4Pmhc?version=3&f=videos&app=youtube_gdata","1":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp","6":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp"},"duration":517,"aspectRatio":"widescreen","rating":4.9,"likeCount":"9857","ratingCount":1,"viewCount":1,"favoriteCount":1,"commentCount":0,"accessControl":{"comment":"allowed","commentVote":"allowed","videoRespond":"moderated","rate":"allowed","embed":"allowed","list":"allowed","autoPlay":"allowed","syndicate":"allowed"}}}'
 
 ####################################################################################################
@@ -152,6 +153,7 @@ def PlayVideo(url=None, default_fmt=None, **kwargs):
 	
 	if not url:
 		return None
+#	return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url))
 	return IndirectResponse(VideoClipObject, key=url)
 #	return Redirect(url) # this results in a file download of the stream
 
