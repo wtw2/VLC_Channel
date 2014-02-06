@@ -2,9 +2,16 @@
 import re
 import datetime
 # for more complex JSON
-import demjson
+#import demjson
 # for urlopen
-import urllib
+from urllib import urlopen
+#import urllib
+# to launch/exit an application
+#from subprocess import Popen
+import os, subprocess, signal
+import errno
+# for processing CSV strings
+import csv
 
 # http://dev.plexapp.com/docs/api/constkit.html
 
@@ -24,8 +31,14 @@ ART          = 'art-default.jpg'
 ICON         = 'icon-vlc.png'
 VLCURL       = 'http://127.0.0.1:11223'
 #VLCURL       = 'http://cs514220v4.vk.me/u5723140/videos/88479e1a6c.360.mp4'
-URL_VLC      = 'http://%s:%s' % (Prefs['vlc_host'], Prefs['vlc_port']) # filled once on start (static)
+URL_VLC      = 'http://%s:%s' % (Prefs['vlc_host'], Prefs['vlc_port_stream']) # filled once on start (static)
+VLC_APP_PATH = 'C:\Program Files (x86)\VideoLAN\VLC\\'
+VLC_APP_FILE = 'vlc.exe'
+VLC_APP      = VLC_APP_PATH + VLC_APP_FILE + ' '
+VLC_FILE     = r'"C:\Users\User\Videos\Physics videos\Videos 360p\Anti-Gravity _ Cold Fusion Explained In Detail_ A New Era In Physics Pt. 1.flv"'
+VLC_ARGS     = '--sout=#transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}:http{dst=:%s/%s} --sout-all --sout-keep --extraintf=http --http-host=%s --http-port=%s --http-password=%s'
 
+# Great regex tester -> http://regex101.com/
 ST_IP_MAP    = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}' #WARNING: group must be non-extracting due to use with ST_PATH_MAP in ST_URL_MAP
 RE_IP_MAP    = Regex('^%s$' % (ST_IP_MAP))
 ST_PORT_MAP  = '[1-9][0-9]{0,4}'
@@ -38,6 +51,8 @@ RE_PAGE_MAP  = Regex('^%s$' % (ST_PAGE_MAP)) # path is group(1), file is group(3
 ST_URL_MAP   = 'http://%s:%s%s' % (ST_IP_MAP, ST_PORT_MAP, ST_PAGE_MAP)
 RE_URL_MAP   = Regex('^%s$' % (ST_URL_MAP))
 #ST_URL_MAP   = '^http://(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[1-9][0-9]{0,4}((/)(?(2)(?:[0-9a-zA-Z_-]+/)+))?(?(2)|/?)([0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?$'
+RE_YES_NO    = Regex('^(?i)(?:y(?:es)?|no?)$')
+RE_COMMAS    = Regex('(,)(?=(?:[^\"]|\"[^\"]*\")*$)') # all commas not between quotes
 
 VLC_VIDEO_FORMATS = ['360p',	'720p',		'1080p']
 VLC_FMT           = [18,		22,			37]
@@ -52,7 +67,10 @@ METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-
 # Shorthands:
 # Resource.ExternalPath() => R()
 # Resource.SharedExternalPath() => S()
-# String.Localization() => L()  ????
+# Resource.Load() => L()
+####################################################################################################
+# Global variables
+vlc_proc = None
 ####################################################################################################
 def Start():
 	Log.Debug("EXECUTING: Start()")
@@ -75,6 +93,7 @@ def Start():
 	# Store user "globals" in the Dict
 	Dict["Initialized"] = False
 	Dict["Today"] = datetime.date.today()
+	Dict["VLCpid"] = -1
 	#InitializePrefs() => can't do this here.  It is too early.  Moved to MainMenu()
 
 ####################################################################################################
@@ -86,13 +105,21 @@ def InitializePrefs():
 	Log.Debug("EXECUTING: InitializePrefs()")
 	Dict["Initialized"] = True
 
+	match = re.search(RE_YES_NO, Prefs['url_service'])
+	if match == None:
+		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?url_service=')
+		
 	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
 	if match == None:
 		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_host=')
 
-	match = re.search(RE_PORT_MAP, Prefs['vlc_port'])
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port_stream'])
 	if match == None:
-		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_port=')
+		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_port_stream=')
+		
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port_control'])
+	if match == None:
+		u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_port_control=')
 		
 	match = re.search(RE_PAGE_MAP, Prefs['vlc_page'])
 	if match == None:
@@ -111,16 +138,26 @@ def ValidatePrefs():
 #       Probably because Plex is already in a popup (Preferences).
 	Log.Debug("EXECUTING: ValidatePrefs()")
 	Log.Debug("***************************************")
+	match = re.search(RE_YES_NO, Prefs['url_service'])
+	if match != None:
+		Log.Debug("SERV  url_service= "+match.group(0))
+	else:
+		Log.Debug("SERV  url_service= INVALID")
 	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
 	if match != None:
 		Log.Debug("HOST  vlc_host= "+match.group(0))
 	else:
 		Log.Debug("HOST  vlc_host= INVALID")
-	match = re.search(RE_PORT_MAP, Prefs['vlc_port'])
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port_stream'])
 	if match != None:
-		Log.Debug("PORT  vlc_port= "+match.group(0))
+		Log.Debug("PORT  vlc_port_stream= "+match.group(0))
 	else:
-		Log.Debug("HOST  vlc_port= INVALID")
+		Log.Debug("PORT  vlc_port_stream= INVALID")
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port_control'])
+	if match != None:
+		Log.Debug("PORT  vlc_port_control= "+match.group(0))
+	else:
+		Log.Debug("PORT  vlc_port_control= INVALID")
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
 		if str_page == ' ':
@@ -131,14 +168,14 @@ def ValidatePrefs():
 	if match != None:
 		Log.Debug("PAGE  vlc_page= "+match.group(0))
 	else:
-		Log.Debug("HOST  vlc_page= INVALID")
+		Log.Debug("PAGE  vlc_page= INVALID")
 
-	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port'], str_page) # dynamic
+	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port_stream'], str_page) # dynamic
 	match = re.search(RE_URL_MAP, url_vlc)
 	if match != None:
 		Log.Debug("URL  vlc_url= "+match.group(0))
 	else:
-		Log.Debug("HOST  vlc_url= INVALID")
+		Log.Debug("URL  vlc_url= INVALID")
 	Log.Debug("***************************************")
 	return
 	
@@ -146,13 +183,21 @@ def ValidatePrefs():
 @route('/video/vlcplayer/PrefValidationNotice')
 def PrefValidationNotice():
 	Log.Debug("EXECUTING: PrefValidationNotice()")
+	match = re.search(RE_YES_NO, Prefs['url_service'])
+	if match == None:
+		return ObjectContainer(header="Settings Error", message="The URL Service setting is invalid.", no_cache=True)
+
 	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
 	if match == None:
 		return ObjectContainer(header="Settings Error", message="The IP address setting is invalid.", no_cache=True)
 
-	match = re.search(RE_PORT_MAP, Prefs['vlc_port'])
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port_stream'])
 	if match == None:
-		return ObjectContainer(header="Settings Error", message="The IP port setting is invalid.", no_cache=True)
+		return ObjectContainer(header="Settings Error", message="The IP stream port setting is invalid.", no_cache=True)
+
+	match = re.search(RE_PORT_MAP, Prefs['vlc_port_control'])
+	if match == None:
+		return ObjectContainer(header="Settings Error", message="The IP control port setting is invalid.", no_cache=True)
 
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
@@ -164,7 +209,7 @@ def PrefValidationNotice():
 	if match == None:
 		return ObjectContainer(header="Settings Error", message="The page setting is invalid.", no_cache=True)
 
-	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port'], str_page) # dynamic
+	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port_stream'], str_page) # dynamic
 	match = re.search(RE_URL_MAP, url_vlc)
 	if match == None:
 		return ObjectContainer(header="Settings Error", message="The settings do not result in a valid url.", no_cache=True)
@@ -175,7 +220,7 @@ def PrefValidationNotice():
 # the following line performs the same as the Plugin.AddPrefixHandler() method above
 #@handler(PREFIX, TITLE, thumb=ICON, art=ART)
 def MainMenu():
-
+	global vlc_proc
 	InitializePrefs()
 
 	do = DirectoryObject(key = Callback(SecondMenu), title = "Example Directory")
@@ -192,33 +237,51 @@ def MainMenu():
 #	oc = ObjectContainer(title1=NAME, art=R(ART))
 	oc = ObjectContainer()
 	oc.add(do)
+	
+	vlc_args = VLC_ARGS % (Prefs['vlc_port_stream'], Prefs['vlc_page'], Prefs['vlc_host'], Prefs['vlc_port_control'], Prefs['password'])
+	# Check to see if VLC is actually running
+	Dict["VLCpid"] = AppRunning(VLC_APP_FILE)
+	if int(Dict["VLCpid"]) > 0:
+		oc.add(DirectoryObject(key = Callback(StopApp, app_pid=Dict["VLCpid"]), title = "Exit VLC"))
+	else:
+		oc.add(DirectoryObject(key = Callback(StartApp, app_app=VLC_APP, app_file=VLC_FILE, app_args=vlc_args), title = "Launch VLC"))
 
 	# Log current settings/preferences click icon
 	Log.Debug("#######################################")
 	Log.Debug("### vlc_host= "+Prefs['vlc_host'])
-	Log.Debug("### vlc_port= "+Prefs['vlc_port'])
-	Log.Debug("### vlc_port= "+Prefs['vlc_page'])
+	Log.Debug("### vlc_port_stream= "+Prefs['vlc_port_stream'])
+	Log.Debug("### vlc_port_control= "+Prefs['vlc_port_control'])
+	Log.Debug("### vlc_page= "+Prefs['vlc_page'])
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
 		if str_page == ' ':
 			str_page = ''
 		else:
 			str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
-	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port'], str_page) # dynamic
+	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port_stream'], str_page) # dynamic
 	Log.Debug("### vlc_url= "+url_vlc)
 	Log.Debug("#######################################")
 	
-# the following strategy does appear to work
-	mo = MediaObject(parts=[PartObject(key=HTTPLiveStreamURL(url_vlc))])
-	# the following instruction causes the framework to call the URL service
-	# see: \Contents\Info.plist -> PlexURLServices
-	# see: \Contents\URL Services\VLCplayer\ServiceCode.pys
-	vco = VideoClipObject(title="Play VLC Stream", url=url_vlc)
-	vco.add(mo)
-	
-# the following strategy does not appear to work (yet)
-#	vco = CreateVideoClipObject(url_vlc, Dict["Today"]) # date only
-#	vco = CreateVideoClipObject(url_vlc, datetime.datetime.today()) -> CreateVideoClipObject() code commented out
+	url_vlc_req = 'http://%s:%s/requests/status.xml' % (Prefs['vlc_host'], Prefs['vlc_port_control'])
+	url_vlc_cmd = url_vlc_req + '?command='
+	# https://wiki.videolan.org/VLC_HTTP_requests/
+	oc.add(DirectoryObject(key = Callback(PlayVLC, url=url_vlc_cmd+'pl_play'), title = "Play VLC"))
+	oc.add(DirectoryObject(key = Callback(PauseVLC, url=url_vlc_cmd+'pl_pause'), title = "Pause VLC"))
+	temp = str(url_vlc_cmd+'pl_stop')
+	oc.add(DirectoryObject(key = Callback(StopVLC, url=temp), title = "Stop VLC"))
+#	oc.add(DirectoryObject(key = Callback(GetStatusMetaVLC, url=url_vlc_req), title = "Status VLC"))
+
+	if Prefs['url_service'][0] == 'y':
+		mo = MediaObject(parts=[PartObject(key=HTTPLiveStreamURL(url_vlc))])
+		# the following instruction causes the framework to call the URL service
+		# see: \Contents\Info.plist -> PlexURLServices
+		# see: \Contents\URL Services\VLCplayer\ServiceCode.pys
+		vco = VideoClipObject(title="Play VLC Stream", url=url_vlc)
+		vco.add(mo)
+	else:
+		vco = CreateVideoClipObject(url_vlc, Dict["Today"]) # date only
+#		vco = CreateVideoClipObject(url_vlc, datetime.datetime.today()) -> CreateVideoClipObject() code commented out
+
 	oc.add(vco)
 	# provide for changing the host and port etc.
 	oc.add(PrefsObject(title = L('Preferences')))
@@ -234,6 +297,7 @@ def SecondMenu():
 	do = DirectoryObject(key = Callback(ThirdMenu), title = "Example Directory")
 	oc.add(do)
 	return oc
+	
 ####################################################################################################
 @route('/video/vlcplayer/ThirdMenu')
 def ThirdMenu():
@@ -241,11 +305,137 @@ def ThirdMenu():
 	do = DirectoryObject(key = Callback(FourthMenu), title = "Dead end")
 	oc.add(do)
 	return oc
+	
 ####################################################################################################
 @route('/video/vlcplayer/FourthMenu')
 def FourthMenu():
 	oc = ObjectContainer(title1='Fourth Menu')
 	return oc
+	
+####################################################################################################
+@route('/video/vlcplayer/PlayVLC')
+def PlayVLC(url):
+	Log.Debug("EXECUTING: PlayVLC("+url+")")
+	page = HTTP.Request(url).content
+	Log.Debug('PLAY: '+page)
+	oc = ObjectContainer(title1='VLC Play')
+	return oc
+	
+####################################################################################################
+@route('/video/vlcplayer/PauseVLC')
+def PauseVLC(url):
+	Log.Debug("EXECUTING: PauseVLC("+url+")")
+	page = HTTP.Request(url).content
+	Log.Debug('PAUSE: '+page)
+	oc = ObjectContainer(title1='VLC Pause')
+	return oc
+	
+####################################################################################################
+@route('/video/vlcplayer/StopVLC')
+def StopVLC(url):
+	Log.Debug("EXECUTING: StopVLC("+str(url)+")")
+#	page = HTTP.Request(url).content
+#	Log.Debug('STOP: '+page)
+	oc = ObjectContainer(title1='VLC Stop')
+	return oc
+	
+####################################################################################################
+@route('/video/vlcplayer/GetStatusMetaVLC')
+def GetStatusMetaVLC(url):
+	Log.Debug("EXECUTING: GetStatusMetaVLC("+url+")")
+	page = HTTP.Request(url).content
+	Log.Debug('STATUS: '+page)
+	oc = ObjectContainer(title1='Status VLC')
+	return oc
+	
+####################################################################################################
+#   This function checks to see if the application is running.
+#       app_app_file - application file name only (with extension)
+#
+@route('/video/vlcplayer/AppRunning')
+def AppRunning(app_app_file):
+	Log.Debug("EXECUTING: AppRunning()")
+	# get PID for vlc.exe if running
+	procs = subprocess.check_output(['tasklist', '/fo', 'csv']) # get the list of processes
+	procEntry = [row for row in procs.split('\n') if row.find(app_app_file) > 0]
+	if len(procEntry) > 0:
+		if len(procEntry) > 1:
+			Log.Debug("# App Procs= " + str(len(procEntry)))
+#		Log.Debug("@@@@@@@ " + procEntry[0])
+		temp = re.split(RE_COMMAS, procEntry[0])[0::2] # remove all commas not between quotes
+#		Log.Debug("@@@@@@@ "+temp[1])
+		procArray = list(csv.reader(temp, delimiter=','))
+#		Log.Debug("@@@@@@@ "+str(procArray))
+		ret = int(procArray[1][0]) # set the indicator
+	else:
+		ret = -1
+	Log.Debug("APP_PID= "+str(ret))
+	return ret
+	
+####################################################################################################
+#   This function launches the application.
+#       app_app - fully qualified application name
+#       app_file - file to open using the application
+#       app_args - application arguments
+#
+@route('/video/vlcplayer/StartApp')
+def StartApp(app_app, app_file, app_args):
+	global vlc_proc
+	if int(Dict["VLCpid"]) < 0:
+		Log.Debug("EXECUTING: StartApp()")
+		Log.Debug('Running Application:  {' + str(app_app) + '}, with the following arguments {' + subprocess.list2cmdline([[ClearNoneString(app_file)], [ClearNoneString(app_args)]]) + '}')
+		# Start the app in a new thread in the security context of the calling process
+		vlc_proc = subprocess.Popen([str(app_app), [ClearNoneString(app_file)], [ClearNoneString(app_args)]])
+		Dict["VLCpid"] = int(vlc_proc.pid)
+		oc = ObjectContainer(title1='Launched App')
+	else:
+		oc = ObjectContainer(title1='App is running')
+	return oc
+	
+####################################################################################################
+#   This function terminates the application.
+#       [Takes no arguments]
+#
+@route('/video/vlcplayer/StopApp')
+def StopApp(app_pid):
+	global vlc_proc
+	if int(app_pid) > 0:
+		Log.Debug("EXECUTING: StopApp()")
+		if vlc_proc:
+			Log.Debug("app_proc exists")
+			vlc_proc.terminate()
+			vlc_proc.wait() # wait for process to stop
+		else:
+			Log.Debug("no app_proc")
+			try:
+				os.kill(int(app_pid), signal.SIGTERM)
+#				os.kill(pid, 0) #  test to see if process is running (pid > 0)
+			except OSError as err:
+				if err.errno == errno.ESRCH:
+					# ESRCH == No such process
+					Log.Debug("%%%%% No such process: "+str(app_pid))
+				elif err.errno == errno.EPERM:
+					# EPERM clearly means there's a process to deny access to
+					Log.Debug("%%%%% Access denied to process: "+str(app_pid))
+				else:
+					# According to "man 2 kill" possible error values are
+					# (EINVAL, EPERM, ESRCH)
+					Log.Debug("%%%%% Error killing process: "+str(app_pid))
+		oc = ObjectContainer(title1='Exited App')
+	else:
+		oc = ObjectContainer(title1='App is not running')
+	return oc
+	
+####################################################################################################
+#   Converts a string with a None value, to an empty string.
+#       value - the value to convert to an empty string, if it is of None value
+#
+@route('/video/vlcplayer/ClearNoneString')
+def ClearNoneString(value):
+	if((value is None) or (value is '{noneText}')):
+		return ''
+	return value
+	
 ####################################################################################################
 @route('/video/vlcplayer/CreateVideoClipObject')
 def CreateVideoClipObject(url, originally_available_at, include_container=False):
@@ -326,7 +516,7 @@ def CreateVideoClipObject(url, originally_available_at, include_container=False)
 		items = MediaObjectsForURL(url)
 #		items = [
 #			MediaObject(
-#				parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt='360p'))],
+#				parts = [PartObject(key=url)],
 #				container = 'mpegts', # no Container.MPEGTS
 #				video_codec = VideoCodec.H264,
 #				video_resolution = '360',
@@ -355,11 +545,13 @@ def MediaObjectsForURL(url):
 		index = VLC_VIDEO_FORMATS.index(fmt)
 		
 		items.append(MediaObject(
-			parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt=fmt))],
+#			parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt=fmt))],
+			parts = [PartObject(key=url)],
 			container = VLC_CONTAINERS[index],
 			video_codec = VLC_VIDEOCODEC[index],
 			audio_codec = VLC_AUDIOCODEC[index],
 			video_resolution = VLC_VIDEORES[index],
+			audio_channels = 2,
 			optimized_for_streaming = (VLC_CONTAINERS[index] == VLC_STREAM_OPT),
 		))
 			

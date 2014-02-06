@@ -14,21 +14,31 @@ What am I doing wrong???
 
 
 
-When I don't use the URL service: see the commented line: vco = CreateVideoClipObject(url_vlc, Dict["Today"]) # date only
+When I don't use the URL service (i.e. manual method): see the commented line: vco = CreateVideoClipObject(url_vlc, Dict["Today"]) # date only
 It does not work.  I don't really understand if this is set up correctly either.
 What am I doing wrong???
-
-*** Changed to that it at least gets to the JW Player.  It then throws an error:
-    el = obj._to_xml()
-  File "C:\Users\User\AppData\Local\Plex Media Server\Plug-ins\Framework.bundle\Contents\Resources\Versions\2\Python\Framework\api\objectkit.py", line 496, in _to_xml
-    raise Framework.exceptions.AttributeException('If no URL is provided, the key and rating_key attributes must be set.')
-AttributeException: If no URL is provided, the key and rating_key attributes must be set.
-
+**** This is now working.  The user, in the settings/prefs, can choose to use either the URL Service, or use the manual method.
 
 
 In ValidatePrefs(); the: return ObjectContainer(header="Error", message="That is not a valid IP port.")
 does not result in a popup on the user interaface informing the user of the error.
 How do you generate such an error message popup?
 *** This is partially fixed.  It displays the error message, but when the pref is corrected, it will display the message again sometimes; like the first time it is corrected and when you return to the MainMenu.
-It is like the object is still attached to the main menu.
+It is like the message object is still attached to the main menu and active.
+
+
+
+Added the ability to launch (and exit) VLC from the channel.  VLC can be launched either inside or outside the channel plugin.  The channel plugin will detect it and can use it, or close it.
+**** This seems to be working.  However, the path information is set for my system.  See the top of the __init__ file.
+
+
+
+Added the ability to play, pause, and stop the VLC player from the channel plugin.  This is done through the VLC web interface.
+The URLs work fine in a browser.
+Problem: Right now it never gets to the callback method for the click event.
+I am obviously making a stupid mistake here.  And suggestions????
+
+
+
+I now know that VLC will provide meta data for the stream.  This is not yet implemented.
 

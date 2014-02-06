@@ -153,8 +153,8 @@ def PlayVideo(url=None, default_fmt=None, **kwargs):
 	
 	if not url:
 		return None
-#	return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url))
 	return IndirectResponse(VideoClipObject, key=url)
+#	return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url)) -> doesn't work here
 #	return Redirect(url) # this results in a file download of the stream
 
 ####################################################################################################
