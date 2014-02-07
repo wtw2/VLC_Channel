@@ -4,10 +4,8 @@ import datetime
 # for more complex JSON
 #import demjson
 # for urlopen
-from urllib import urlopen
-#import urllib
+import urllib
 # to launch/exit an application
-#from subprocess import Popen
 import os, subprocess, signal
 import errno
 # for processing CSV strings
@@ -262,13 +260,13 @@ def MainMenu():
 	Log.Debug("### vlc_url= "+url_vlc)
 	Log.Debug("#######################################")
 	
-	url_vlc_req = 'http://%s:%s/requests/status.xml' % (Prefs['vlc_host'], Prefs['vlc_port_control'])
+	# access requires no username, only a password
+	url_vlc_req = 'http://:%s@%s:%s/requests/status.xml' % (Prefs['password'], Prefs['vlc_host'], Prefs['vlc_port_control'])
 	url_vlc_cmd = url_vlc_req + '?command='
 	# https://wiki.videolan.org/VLC_HTTP_requests/
 	oc.add(DirectoryObject(key = Callback(PlayVLC, url=url_vlc_cmd+'pl_play'), title = "Play VLC"))
 	oc.add(DirectoryObject(key = Callback(PauseVLC, url=url_vlc_cmd+'pl_pause'), title = "Pause VLC"))
-	temp = str(url_vlc_cmd+'pl_stop')
-	oc.add(DirectoryObject(key = Callback(StopVLC, url=temp), title = "Stop VLC"))
+	oc.add(DirectoryObject(key = Callback(StopVLC, url=url_vlc_cmd+'pl_stop'), title = "Stop VLC"))
 #	oc.add(DirectoryObject(key = Callback(GetStatusMetaVLC, url=url_vlc_req), title = "Status VLC"))
 
 	if Prefs['url_service'][0] == 'y':
@@ -315,36 +313,39 @@ def FourthMenu():
 ####################################################################################################
 @route('/video/vlcplayer/PlayVLC')
 def PlayVLC(url):
-	Log.Debug("EXECUTING: PlayVLC("+url+")")
-	page = HTTP.Request(url).content
-	Log.Debug('PLAY: '+page)
+	if int(Dict["VLCpid"]) > 0:
+		Log.Debug("EXECUTING: PlayVLC("+url+")")
+		page = urllib.urlopen(url).read()
+		# HTTP.Request won't accept HTTP Basic Authentication credentials in the URL
+		#page = HTTP.Request(url).content
 	oc = ObjectContainer(title1='VLC Play')
 	return oc
 	
 ####################################################################################################
 @route('/video/vlcplayer/PauseVLC')
 def PauseVLC(url):
-	Log.Debug("EXECUTING: PauseVLC("+url+")")
-	page = HTTP.Request(url).content
-	Log.Debug('PAUSE: '+page)
+	if int(Dict["VLCpid"]) > 0:
+		Log.Debug("EXECUTING: PauseVLC("+url+")")
+		page = urllib.urlopen(url).read()
 	oc = ObjectContainer(title1='VLC Pause')
 	return oc
 	
 ####################################################################################################
 @route('/video/vlcplayer/StopVLC')
 def StopVLC(url):
-	Log.Debug("EXECUTING: StopVLC("+str(url)+")")
-#	page = HTTP.Request(url).content
-#	Log.Debug('STOP: '+page)
+	if int(Dict["VLCpid"]) > 0:
+		Log.Debug("EXECUTING: StopVLC("+str(url)+")")
+		page = urllib.urlopen(url).read()
 	oc = ObjectContainer(title1='VLC Stop')
 	return oc
 	
 ####################################################################################################
 @route('/video/vlcplayer/GetStatusMetaVLC')
 def GetStatusMetaVLC(url):
-	Log.Debug("EXECUTING: GetStatusMetaVLC("+url+")")
-	page = HTTP.Request(url).content
-	Log.Debug('STATUS: '+page)
+	if int(Dict["VLCpid"]) > 0:
+		Log.Debug("EXECUTING: GetStatusMetaVLC("+url+")")
+		page = urllib.urlopen(url).read()
+		Log.Debug('STATUS: '+page)
 	oc = ObjectContainer(title1='Status VLC')
 	return oc
 	
