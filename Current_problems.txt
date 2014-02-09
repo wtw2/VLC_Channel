@@ -9,36 +9,54 @@ VLC output parameters:
 
 When I use the URL service using VideoClipObject() and the URL of "http://127.0.0.1:11223" (the VLC stream out) it works.
 If I try to change everything for the URL of "http://127.0.0.1:11223/stream.ts" it no longer works.
-What am I doing wrong???
 **** This is now fixed. Regex error was corrected.
 
 
 
 When I don't use the URL service (i.e. manual method): see the commented line: vco = CreateVideoClipObject(url_vlc, Dict["Today"]) # date only
 It does not work.  I don't really understand if this is set up correctly either.
-What am I doing wrong???
 **** This is now working.  The user, in the settings/prefs, can choose to use either the URL Service, or use the manual method.
+
 
 
 In ValidatePrefs(); the: return ObjectContainer(header="Error", message="That is not a valid IP port.")
 does not result in a popup on the user interaface informing the user of the error.
 How do you generate such an error message popup?
-*** This is partially fixed.  It displays the error message, but when the pref is corrected, it will display the message again sometimes; like the first time it is corrected and when you return to the MainMenu.
+????? This is partially fixed.  It displays the error message, but when the pref is corrected, it will display the message again sometimes; like the first time after it is corrected and when you return to the MainMenu.
 It is like the message object is still attached to the main menu and active.
 
 
 
 Added the ability to launch (and exit) VLC from the channel.  VLC can be launched either inside or outside the channel plugin.  The channel plugin will detect it and can use it, or close it.
 **** This seems to be working.  However, the path information is set for my system.  See the top of the __init__ file.
+?????? This sometimes never leaves the app start method StartApp() for some reason.  Seems only on first run.
+
+
+
+The code for configuring VLC when started outside the plugin is not complete.  I'm not sure it can be doen without restarting VLC.
+?????
 
 
 
 Added the ability to play, pause, and stop the VLC player from the channel plugin.  This is done through the VLC web interface.
 The URLs work fine in a browser.
 Problem: Right now it never gets to the callback method for the click event.
-I am obviously making a stupid mistake here.  And suggestions????
+**** Fixed and working.
 
 
 
-I now know that VLC will provide meta data for the stream.  This is not yet implemented.
+Added the ability to change the stream file for VLC to stream in settings.  Haven't worked on URLs yet.
+
+
+
+Added a choice for transcoding or no transcoding.
+
+
+
+I now know that VLC will provide meta data for the stream.  This is not yet implemented. This may only be applicable for no transcoding, since the meta data appears to be for the source stream, not transcoded stream.
+
+
+
+When using the URL Service, when viewing the stream and you backarrrow one level and then Play again, and select resolution, it then becomes a download.  It only goes back to playing the stream if you back out another level.
+????? I have no idea why this happens.
 

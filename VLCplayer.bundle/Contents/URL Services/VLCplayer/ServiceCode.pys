@@ -122,7 +122,6 @@ def MetadataObjectForURL(url):
 		duration = duration,
 		genres = genres
 	)
-#		genres = [details['category']]
 
 ####################################################################################################
 def MediaObjectsForURL(url):
@@ -138,6 +137,7 @@ def MediaObjectsForURL(url):
 		
 		ret.append(MediaObject(
 			parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt=fmt))],
+#			parts = [PartObject(key=HTTPLiveStreamURL(url_vlc))],
 			container = VLC_CONTAINERS[index],
 			video_codec = VLC_VIDEOCODEC[index],
 			audio_codec = VLC_AUDIOCODEC[index],

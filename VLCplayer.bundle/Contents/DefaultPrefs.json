@@ -7,6 +7,13 @@
 	},
 	
 	{
+		"id": 		"transcode",
+		"label": 	"Transcode the stream? (yes/no)",
+		"type": 	"text",
+		"default": 	"yes"
+	},
+	
+	{
 		"id": 		"vlc_host",
 		"label": 	"VLC Host IP",
 		"type": 	"text",
@@ -42,8 +49,15 @@
 	},
 	
 	{
-		"id":		"drw_url",
-		"label": 	"Direct URL",
+		"id":		"fq_file",
+		"label": 	"Fully Qualified filename",
+		"type": 	"text",
+		"default": 	"C:\/Users\/User\/Videos\/Physics videos\/Videos 360p\/Anti-Gravity _ Cold Fusion Explained In Detail_ A New Era In Physics Pt. 1.flv"
+	},
+	
+	{
+		"id":		"fq_url",
+		"label": 	"Fully Qualified URL",
 		"type": 	"text",
 		"default": 	"http://cs514220v4.vk.me/u5723140/videos/88479e1a6c.360.mp4"
 	}
