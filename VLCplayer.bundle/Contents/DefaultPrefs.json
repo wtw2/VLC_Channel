@@ -1,16 +1,17 @@
 [
 	{
 		"id": 		"url_service",
-		"label": 	"Use URL Service? (yes/no)",
-		"type": 	"text",
-		"default": 	"yes"
+		"label": 	"Use URL Service",
+		"type": 	"bool",
+		"default": 	"false"
 	},
 	
 	{
 		"id": 		"transcode",
-		"label": 	"Transcode the stream? (yes/no)",
-		"type": 	"text",
-		"default": 	"yes"
+		"label": 	"Transcode the stream?",
+		"type": 	"enum",
+		"values":	["yes", "no"],
+		"default": 	"no"
 	},
 	
 	{
@@ -45,7 +46,9 @@
 		"id":		"password",
 		"label": 	"VLC Lua Password",
 		"type": 	"text",
-		"default": 	"ok"
+		"default":	"ok",
+		"option":	"hidden",
+		"secure":	"true"
 	},
 	
 	{

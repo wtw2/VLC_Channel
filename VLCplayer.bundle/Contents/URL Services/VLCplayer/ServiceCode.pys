@@ -42,9 +42,9 @@ import datetime
 DEFAULT_URL   = 'http://127.0.0.1:11223'
 ST_IP_MAP    = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}' #WARNING: group must be non-extracting due to use with ST_PATH_MAP in ST_URL_MAP
 ST_PORT_MAP  = '[1-9][0-9]{0,4}'
-ST_PATH_MAP  = '((/)(?(2)(?:[0-9a-zA-Z_-]+/)+))?'
-ST_FILE_MAP  = '([0-9a-zA-Z_\-\.]+\.[0-9a-zA-Z]{2,4})?'
-ST_PAGE_MAP  = '%s(?(2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (no slashes)
+ST_PATH_MAP  = '((/)(?(2)(?:[0-9a-zA-Z _-]+/)+))?' # added space character
+ST_FILE_MAP  = '([0-9a-zA-Z _\-\.]+\.[0-9a-zA-Z]{2,4})?' # added space character
+ST_PAGE_MAP  = '%s(?(2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (initial slash optional)
 ST_URL_MAP   = 'http://%s:%s%s' % (ST_IP_MAP, ST_PORT_MAP, ST_PAGE_MAP)
 RE_URL_MAP   = Regex('^%s$' % (ST_URL_MAP))
 
