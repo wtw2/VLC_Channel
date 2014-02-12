@@ -22,19 +22,20 @@ It does not work.  I don't really understand if this is set up correctly either.
 In ValidatePrefs(); the: return ObjectContainer(header="Error", message="That is not a valid IP port.")
 does not result in a popup on the user interaface informing the user of the error.
 How do you generate such an error message popup?
-????? This is partially fixed.  It displays the error message, but when the pref is corrected, it will display the message again sometimes; like the first time after it is corrected and when you return to the MainMenu.
+????? This is partially fixed.  It displays the error message, but when the pref is corrected, it will display the message again sometimes; like the first time after it is corrected and whenever you return to the MainMenu.
 It is like the message object is still attached to the main menu and active.
 
 
 
 Added the ability to launch (and exit) VLC from the channel.  VLC can be launched either inside or outside the channel plugin.  The channel plugin will detect it and can use it, or close it.
 **** This seems to be working.  However, the path information is set for my system.  See the top of the __init__ file.
-?????? This sometimes never leaves the app start method StartApp() for some reason.  Seems only on first run.
+This sometimes never leaves the app start method StartApp() for some reason.
+**** Fixed.  Forgot to set the process handle to null on stop.
 
 
 
-The code for configuring VLC when started outside the plugin is not complete.  I'm not sure it can be doen without restarting VLC.
-?????
+The code for configuring VLC when started outside the plugin is not complete.  I'm not sure it can be done without restarting VLC.
+**** Have to restart VLC.  Cannot change the launch configuration parameters with the web interface.
 
 
 
@@ -46,6 +47,7 @@ Problem: Right now it never gets to the callback method for the click event.
 
 
 Added the ability to change the stream file for VLC to stream in settings.  Haven't worked on URLs yet.
+**** Seems to be working well.
 
 
 
