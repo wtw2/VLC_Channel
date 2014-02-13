@@ -1,0 +1,40 @@
+
+SETTINGS:
+
+Use URL Service checkbox - if checked the channel uses the Plex URL service system, otherwise everything is configured explicitly.
+Transcode the stream?  yes/no - if yes the stream is transcoded (see the __init__.py file, VLC_ARGS1)
+VLC Host IP: The IP address for the VLC output stream and the web interface. This is checked using a regular expression pattern
+VLC Host Port for stream - (what it says) This is checked using a regular expression pattern
+VLC Host {/Path/}Page -> space for none - the VLC path/page reference set for the output stream. This is checked using a regular expression pattern
+VLC Host Port for control - used for the web interface. This is checked using a regular expression pattern
+VLC Lua Password - used to access the web interface.  (Since it is set to this at launch and used for access it can be anything)
+Fully Qualified filename - full path name (ex. C:/...) This is checked using a regular expression pattern
+Fully Qualified URL - full URL (ex. http://...) This is checked using a regular expression pattern
+VLC Source (used raw) - the full URI required by VLC to access a streamable or stream source. This is NOT checked using a regular expression pattern
+
+
+
+Main Menu:
+
+Play VLC Stream - this launches the Plex video player to view the VLC output stream.
+Launch VLC - This starts up the VLC application
+{or}
+Restart VLC - This closes the detected VLC application and then starts another instance with the required parameter settings
+{or}
+Exit VLC - The closes the VLC application started by: Launch VLC
+Play VLC - Starts VLC playing the currently selected item
+Pause VLC - Pause VLC playing (toggle) 
+Stop VLC - Stop VLC playing
+Status VLC - not currenty used
+Play List - opens another directory level for Playlist control
+Refresh - refreshes this directory
+
+
+
+
+Playlist Menu:
+A list of current VLC play items appears first
+...
+Clear VLC Playlist - deletes all items in the playlist in the VLC application
+Add Plex Playlist to VLC - (what it says)
+Replace Plex Playlist with VLC - (what it says)
