@@ -1,6 +1,8 @@
 # import for regular expressions
 import re
 import datetime
+# for urlopen
+import urllib
 
 ####################################################################################################
 # https://forums.plex.tv/index.php/topic/62229-direct-play-formats/
@@ -40,15 +42,16 @@ import datetime
 ####################################################################################################
 
 DEFAULT_URL   = 'http://127.0.0.1:11223'
-ST_IP_MAP    = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}' #WARNING: group must be non-extracting due to use with ST_PATH_MAP in ST_URL_MAP
+ST_IP_MAP    = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}'
 ST_PORT_MAP  = '[1-9][0-9]{0,4}'
-ST_PATH_MAP  = '((/)(?(2)(?:[0-9a-zA-Z _-]+/)+))?' # added space character
+ST_PATH_MAP  = '((?P<path2>/)(?(path2)(?:[0-9a-zA-Z _-]+/)+))?' # added space character
 ST_FILE_MAP  = '([0-9a-zA-Z _\-\.]+\.[0-9a-zA-Z]{2,4})?' # added space character
-ST_PAGE_MAP  = '%s(?(2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (initial slash optional)
+ST_PAGE_MAP  = '%s(?(path2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (initial slash optional)
 ST_URL_MAP   = 'http://%s:%s%s' % (ST_IP_MAP, ST_PORT_MAP, ST_PAGE_MAP)
 RE_URL_MAP   = Regex('^%s$' % (ST_URL_MAP))
 
-VLC_VIDEO_DETAILS = 'http://gdata.youtube.com/feeds/api/videos/%s?v=2&alt=jsonc'
+# url_vlc_req = VLC_REQ % (Prefs['password'], Prefs['vlc_host'], Prefs['vlc_port_control']) # Prefs[] doesn't exist here
+VLC_VIDEO_DETAILS = 'http://:ok@127.0.0.1:5555/requests/status.json'
 VLC_VIDEO_FORMATS = ['360p',	'720p',		'1080p']
 VLC_FMT           = [18,		22,			37]
 VLC_CONTAINERS    = ['mpegts',	'mpegts',	'mpegts']
@@ -57,7 +60,7 @@ VLC_AUDIOCODEC    = ['mp3',		'mp3',		'mp3']
 VLC_VIDEORES      = ['360',		'720',		'1080']
 VLC_STREAM_OPT    = 'mpegts'
 
-METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-04-25T14:00:46.000Z","updated":"2014-01-27T02:24:39.000Z","uploader":"Unknown","category":"Various","title":"VLC Video Stream","description":"This video is being streamed by VLC player from a direct video URL.","thumbnail":{"sqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/default.jpg","hqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/hqdefault.jpg"},"player":{"default":"http://www.youtube.com/watch?v=Hx9TwM4Pmhc&feature=youtube_gdata_player","mobile":"http://m.youtube.com/details?v=Hx9TwM4Pmhc"},"content":{"5":"http://www.youtube.com/v/Hx9TwM4Pmhc?version=3&f=videos&app=youtube_gdata","1":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp","6":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp"},"duration":517,"aspectRatio":"widescreen","rating":4.9,"likeCount":"9857","ratingCount":1,"viewCount":1,"favoriteCount":1,"commentCount":0,"accessControl":{"comment":"allowed","commentVote":"allowed","videoRespond":"moderated","rate":"allowed","embed":"allowed","list":"allowed","autoPlay":"allowed","syndicate":"allowed"}}}'
+METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-04-25T14:00:46.000Z","updated":"2014-01-27T02:24:39.000Z","uploader":"Unknown","category":"Various","title":"VLC Video Stream","description":"This video is being streamed by VLC player from a file, device, or a direct video URL.","thumbnail":{"sqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/default.jpg","hqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/hqdefault.jpg"},"player":{"default":"http://www.youtube.com/watch?v=Hx9TwM4Pmhc&feature=youtube_gdata_player","mobile":"http://m.youtube.com/details?v=Hx9TwM4Pmhc"},"content":{"5":"http://www.youtube.com/v/Hx9TwM4Pmhc?version=3&f=videos&app=youtube_gdata","1":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp","6":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp"},"duration":7200,"aspectRatio":"widescreen","rating":4.9,"likeCount":"9857","ratingCount":1,"viewCount":1,"favoriteCount":1,"commentCount":0,"accessControl":{"comment":"allowed","commentVote":"allowed","videoRespond":"moderated","rate":"allowed","embed":"allowed","list":"allowed","autoPlay":"allowed","syndicate":"allowed"}}}'
 
 ####################################################################################################
 def NormalizeURL(url):
@@ -74,20 +77,43 @@ def MetadataObjectForURL(url):
 
 	try:
 		details = JSON.ObjectFromString(METADATA, encoding=None)['data']
+		
+		# the JSON.ObjectFromURL() method does not play nice.  Its errors seem to require a reboot.
+		# This does not work in __init__.py.  It fails without an error message and makes the method
+		#   non-functional even with a PMS restart.  It seems to cause a problem in the browser .
+###		details2 = JSON.ObjectFromURL(VLC_VIDEO_DETAILS, headers=HTTP_HEADERS, cacheTime=CACHE_1HOUR)
 	except:
 		raise Ex.MediaNotAuthorized
+	try:
+		details2 = JSON.ObjectFromString(urllib.urlopen(VLC_VIDEO_DETAILS).read())
+	except:
+		details2 = None
 	
 	try:
-		title = details['title']
+		title = details2['information']['category']['meta']['filename']
+		if title and len(title) > 0:
+			ext = title.rfind('.')
+			if ext > 0:
+				title = title[0:ext]
+				title2 = title
+		else:
+			raise ValueError('No VLC filename found.')
 	except:
-		title = 'No title'
+		try:
+			title = details['title']
+		except:
+			title = 'No title'
 
 	try:
-		summary = details['description']
+		summary = ''
+		if title2:
+			summary = title2 + '\n\n'
+		summary += details['description']
 	except:
-		summary = 'No description'
+		summary += 'No description'
 
 	thumb = ''
+#	thumb_pic = R(T_MOVIE)
 	
 	try:
 		rating = details['rating'] * 2
@@ -100,7 +126,10 @@ def MetadataObjectForURL(url):
 		tags = []
 	
 	try:
-		duration = details['duration'] * 1000
+		if isinstance(details2['length'], int):
+			duration = details2['length'] * 1000
+		else:
+			duration = details['duration'] * 1000
 	except:
 		raise Ex.MediaNotAvailable
 	if not isinstance(duration, int):
@@ -115,6 +144,7 @@ def MetadataObjectForURL(url):
 	return VideoClipObject(
 		title = title,
 		summary = summary,
+#		thumb = thumb_pic,
 		thumb = Resource.ContentsOfURLWithFallback(thumb),
 		rating = rating,
 		tags = tags,

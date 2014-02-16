@@ -1,5 +1,5 @@
 I use VLC to transcode and stream back out an internet stream feed from a direct video file URL, like:
-http://cs514220v4.vk.me/u5723140/videos/88479e1a6c.360.mp4   (which no longer exists)
+http://cs514220v4.vk.me/u5723140/videos/88479e1a6c.360.mp4   (this link no longer exists)
 
 VLC output parameters:
 
@@ -56,9 +56,11 @@ Added a choice for transcoding or no transcoding.
 
 
 I now know that VLC will provide meta data for the stream.  This is not yet implemented. This may only be applicable for no transcoding, since the meta data appears to be for the source stream, not transcoded stream.
+**** Partially implemented.
 
 
 
 When using the URL Service, when viewing the stream and you backarrrow one level and then Play again, and select resolution, it then becomes a download.  It only goes back to playing the stream if you back out another level.
 ????? I have no idea why this happens.
+***** The Youtube and Khan Plex channels have this issue also.  It appears to be a problem in PMS.
 
