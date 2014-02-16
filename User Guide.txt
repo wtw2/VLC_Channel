@@ -1,3 +1,22 @@
+Setting in the code specific to the developer: (except for "fq_file" (see below), I believe that the channel should work without code modifications)
+
+C:\Users\User\AppData\Local\Plex Media Server\Plug-ins\VLCplayer.bundle\Contents\URL Services\VLCplayer\ServiceCode.pys
+The IP addresses and port numbers ->
+DEFAULT_URL   = 'http://127.0.0.1:11223'
+
+VLC_VIDEO_DETAILS = 'http://:ok@127.0.0.1:5555/requests/status.json'
+
+
+C:\Users\User\AppData\Local\Plex Media Server\Plug-ins\VLCplayer.bundle\Contents\Code\__init__.py
+Nothing found
+
+C:\Users\User\AppData\Local\Plex Media Server\Plug-ins\VLCplayer.bundle\Contents\DefaultPrefs.json
+check all default values,
+especially for ->
+fq_file
+fq_url
+
+
 
 SETTINGS:
 
@@ -17,16 +36,16 @@ VLC Source (used raw) - the full URI required by VLC to access a streamable or s
 Main Menu:
 
 Play VLC Stream - this launches the Plex video player to view the VLC output stream.
+Play List - opens another directory level for Playlist control
+Play VLC - Starts VLC playing the currently selected item
+Pause VLC - Pause VLC playing (toggle) 
+Stop VLC - Stop VLC playing
 Launch VLC - This starts up the VLC application
 {or}
 Restart VLC - This closes the detected VLC application and then starts another instance with the required parameter settings
 {or}
 Exit VLC - The closes the VLC application started by: Launch VLC
-Play VLC - Starts VLC playing the currently selected item
-Pause VLC - Pause VLC playing (toggle) 
-Stop VLC - Stop VLC playing
 Status VLC - not currenty used
-Play List - opens another directory level for Playlist control
 Refresh - refreshes this directory
 
 
@@ -35,6 +54,7 @@ Refresh - refreshes this directory
 Playlist Menu:
 A list of current VLC play items appears first
 ...
-Clear VLC Playlist - deletes all items in the playlist in the VLC application
-Add Plex Playlist to VLC - (what it says)
-Replace Plex Playlist with VLC - (what it says)
+SYNC -> VLC Playlist
+CLEAR -> VLC Playlist - deletes all items in the playlist in the VLC application
+ADD -> Plex Playlist to VLC - (what it says)
+REPLACE -> Plex Playlist with VLC - (what it says)

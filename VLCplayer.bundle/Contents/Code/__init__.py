@@ -13,23 +13,23 @@ import errno
 import csv
 #import ctypes
 # http://cs518408v4.vk.me/u5723140/videos/a53afa5870.360.mp4 -> NG
-# http://cs518408v4.vk.me/u5723140/videos/6dc27ec7c4.360.mp4 -> new
+# http://cs518408v4.vk.me/u5723140/videos/b578c40680.360.mp4 -> new
 
 # http://dev.plexapp.com/docs/api/constkit.html
 
 # VLC output parameters:
-#1) :sout=#transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}:http{mux=ts,dst=:11223/} :sout-all :sout-keep
-#2) :sout=#transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}:http{mux=ts,dst=:11223/stream.ts} :sout-all :sout-keep
+#1) :sout=#transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}:http{mux=ts,dst=:11223/stream.ts} :sout-all :sout-keep
 # vb = video bitrate
 # ab = audio bitrate
 # acodec = mpga => MP3
 # mux = ts => Transport Stream
+# http://:ok@127.0.0.1:5555/requests/README.txt
 # http://www.videolan.org/developers/vlc/share/lua/intf/modules/httprequests.lua
 # https://wiki.videolan.org/VLC_HTTP_requests/
 # an alternative:
 # http://n0tablog.wordpress.com/2009/02/09/controlling-vlc-via-rc-remote-control-interface-using-a-unix-domain-socket-and-no-programming/
 ####################################################################################################
-# Last updated: 02/15/2014
+# Last updated: 02/16/2014
 ####################################################################################################
 
 PREFIX       = '/video/vlcplayer'
@@ -47,6 +47,7 @@ T_PLAYLIST   = 'Status-media-playlist-repeat-icon.png'
 T_RIGHT      = 'Arrow-turn-right-icon.png'
 T_LEFT       = 'Arrow-turn-left-icon.png'
 T_DELETE     = 'Close-icon.png'
+T_SYNC       = 'gtk-refresh.png'
 T_MOVIE      = 'Movies-icon.png'
 #URL_VLC      = 'http://%s:%s' % (Prefs['vlc_host'], Prefs['vlc_port_stream']) # filled once on start (static)
 VLC_APP_PATH = 'C:\Program Files (x86)\VideoLAN\VLC\\'
@@ -197,7 +198,7 @@ def InitializePrefs():
 	
 	return
 
-# Force set a prference:
+# Force set a preference:
 # u = urllib.urlopen('http://{PMS_IP}:32400/:/plugins/{PLUGIN STRING}/prefs/set?{VARIABLE}={VALUE}')
 # set vlc_page to defualt >>
 # u = urllib.urlopen('http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?vlc_page=')
@@ -233,13 +234,13 @@ def ValidatePrefs():
 		Log.Debug("PORT  vlc_port_control= "+match.group(0))
 	else:
 		Log.Debug("PORT  vlc_port_control= INVALID")
+	
 	str_page = Prefs['vlc_page']
 	if str_page[0] != '/':
 		if str_page == ' ':
 			str_page = ''
 		else:
 			str_page = '/' + Prefs['vlc_page'] # does not start with a "/"
-	
 	match = re.search(RE_PAGE_MAP, str_page)
 	if match != None:
 		Log.Debug("PAGE  vlc_page= "+match.group(0))
@@ -377,16 +378,6 @@ def MainMenu():
 	url_vlc_meta = url_vlc_req + VLC_META
 #	url_vlc_cmd = VLC_CON % (Prefs['password'], Prefs['vlc_host'], Prefs['vlc_port_control']) # doesn't work
 
-	if int(Dict['VLCpid']) < 0:
-#		fq_file = '"'+str(Prefs['fq_file']).replace('/', '\\')+'"' # change frontslashes to backslashes (Windows)
-		fq_file = 'file:///'+str(Prefs['fq_file']).replace(' ', '%20')
-		oc.add(DirectoryObject(key = Callback(StartApp, app_app=VLC_APP, app_file=fq_file, app_args=vlc_args), title = "Launch VLC"))
-	elif not Dict['VLCconfigured']:
-		fq_file = 'file:///'+str(Prefs['fq_file']).replace(' ', '%20')
-		oc.add(DirectoryObject(key = Callback(ConfigureApp, app_app=VLC_APP, app_file=fq_file, app_args=vlc_args), title = "Restart VLC"))
-	else:
-		oc.add(DirectoryObject(key = Callback(StopApp, app_pid=Dict['VLCpid']), title = "Exit VLC"))		
-		
 	# Log current settings/preferences click icon
 	Log.Debug("#######################################")
 	Log.Debug("### vlc_host= "+Prefs['vlc_host'])
@@ -403,20 +394,12 @@ def MainMenu():
 	Log.Debug("### vlc_url= "+url_vlc)
 	Log.Debug("#######################################")
 	
-	# https://wiki.videolan.org/VLC_HTTP_requests/
-	oc.add(DirectoryObject(key = Callback(PlayVLC, url=url_vlc_cmd+'pl_play'), title = "Play VLC", thumb = R(T_PLAY)))
-	oc.add(DirectoryObject(key = Callback(PauseVLC, url=url_vlc_cmd+'pl_pause'), title = "Pause VLC", thumb = R(T_PAUSE)))
-	oc.add(DirectoryObject(key = Callback(StopVLC, url=url_vlc_cmd+'pl_stop'), title = "Stop VLC", thumb = R(T_STOP)))
-	oc.add(DirectoryObject(key = Callback(GetStatusMetaVLC, url=url_vlc_meta), title = "Status VLC", thumb = R(T_STATUS)))
-	oc.add(DirectoryObject(key = Callback(PlayListVLC, url=url_vlc_cmd, url_meta=url_vlc_meta), title = "Play List", thumb = R(T_PLAYLIST)))
-	oc.add(DirectoryObject(key = Callback(Refresh), title = "Refresh", thumb = R(T_REFRESH)))
-
 	if Dict['StreamType']:
 		vco = SourceVLC(url_vlc_cmd, url_vlc_meta, Dict['StreamType']['type'], Prefs[Dict['StreamType']['fq_uri']])
 		Dict['StreamType'] = None
+		GetPlayListVLC(False) # update the list
 		if vco:
 			return vco
-		GetPlayListVLC() # update the list
 
 	if Prefs['url_service']:
 		mo = MediaObject(parts=[PartObject(key=HTTPLiveStreamURL(url_vlc))])
@@ -436,6 +419,25 @@ def MainMenu():
 	oc.add(PrefsObject(title = L('Preferences')))
 #	oc.add(InputDirectoryObject(title=L('Search'), key=Callback(SearchMenu))) # The "Search" bubble
 	
+	# https://wiki.videolan.org/VLC_HTTP_requests/
+	oc.add(DirectoryObject(key = Callback(PlayListVLC, url=url_vlc_cmd, url_meta=url_vlc_meta), title = "Play List", thumb = R(T_PLAYLIST)))
+	oc.add(DirectoryObject(key = Callback(PlayVLC, url=url_vlc_cmd+'pl_play'), title = "Play VLC", thumb = R(T_PLAY)))
+	oc.add(DirectoryObject(key = Callback(PauseVLC, url=url_vlc_cmd+'pl_pause'), title = "Pause VLC", thumb = R(T_PAUSE)))
+	oc.add(DirectoryObject(key = Callback(StopVLC, url=url_vlc_cmd+'pl_stop'), title = "Stop VLC", thumb = R(T_STOP)))
+	
+	if int(Dict['VLCpid']) < 0:
+#		fq_file = '"'+str(Prefs['fq_file']).replace('/', '\\')+'"' # change frontslashes to backslashes (Windows)
+		fq_file = 'file:///'+str(Prefs['fq_file']).replace(' ', '%20')
+		oc.add(DirectoryObject(key = Callback(StartApp, app_app=VLC_APP, app_file=fq_file, app_args=vlc_args), title = "Launch VLC"))
+	elif not Dict['VLCconfigured']:
+		fq_file = 'file:///'+str(Prefs['fq_file']).replace(' ', '%20')
+		oc.add(DirectoryObject(key = Callback(ConfigureApp, app_app=VLC_APP, app_file=fq_file, app_args=vlc_args), title = "Restart VLC"))
+	else:
+		oc.add(DirectoryObject(key = Callback(StopApp, app_pid=Dict['VLCpid']), title = "Exit VLC"))		
+		
+	oc.add(DirectoryObject(key = Callback(GetStatusMetaVLC, url=url_vlc_meta), title = "Status VLC", thumb = R(T_STATUS)))
+	oc.add(DirectoryObject(key = Callback(Refresh), title = "Refresh", thumb = R(T_REFRESH)))
+
 #	details = demjson.encode(oc) -> JSONEncodeError('can not encode object into a JSON representation',obj)
 #	Log.Debug(details)
 	return oc
@@ -517,12 +519,15 @@ def SourceVLC(url, url_meta, type, source):
 			uri = type+source
 #			page = urllib.urlopen(url+'in_enqueue&input='+uri.replace(' ', '%20')).read() # just add it, don't play it
 			if str(uri) in Dict['PlayList']:
+				Log.Debug('SourceVLC(): Playlist ID: '+str(Dict['PlayList'][uri][0]))
 				page = urllib.urlopen(url+'pl_play&id='+str(Dict['PlayList'][uri][0])).read()
-				oc = VLCPlayCheck(url_meta, Dict['PlayList'][uri][2])
+				oc = VLCPlayCheck(oc, url_meta, Dict['PlayList'][uri][2])
 				page = urllib.urlopen(url+'pl_stop').read()
 			else:
+				Log.Debug('SourceVLC: Not in Playlist')
 				page = urllib.urlopen(url+'in_play&input='+uri.replace(' ', '%20')).read()
-				oc = VLCPlayCheck(url_meta, Dict['PlayList'][uri][2])
+				oc = ObjectContainer(header="Playlist Selection", message="The Playlist item was added.", no_cache=True)
+				oc = VLCPlayCheck(oc, url_meta, uri)
 				page = urllib.urlopen(url+'pl_stop').read()
 		except:
 			Log.Debug("ERROR: SourceVLC()")
@@ -530,20 +535,26 @@ def SourceVLC(url, url_meta, type, source):
 	
 ####################################################################################################
 @route('/video/vlcplayer/VLCPlayCheck')
-def VLCPlayCheck(url, target):
-	Log.Debug("EXECUTING: VLCPlayCheck()")
+def VLCPlayCheck(oc_in, url, uri):
 	time.sleep(5)
-	oc = None
+	Log.Debug("EXECUTING: VLCPlayCheck()")
+	oc = oc_in
 	try:
-		page = urllib.urlopen(url).read()
+		page = urllib.urlopen(url).read() # get status.json
 		state = re.search('.*("state":"playing")', page)
-#		filename = re.search('.*(?:"filename":"([^"]*))', page).group(1)
-		filename = re.search('.*"filename":"'+target+'"', page)
+		file = re.search('^(?:file:///)?(.*)', uri)
+		if file:
+			file = re.search(RE_FQFILE_MAP, file.group(1)) # check if this is a fully qualified filename
+		if file:
+			uri = file.group(3) # get just the filename
+#		filename = re.search('.*(?:"filename":"([^"]*))', page).group(1) # get filename
+		filename = re.search('.*"filename":"'+uri+'"', page) # check for a match (it is supposed to be playing)
 		if not state or not filename:
 			oc = ObjectContainer(header="Play Error", message="The source could not be opened.", no_cache=True)
-#		else:
-#			Log.Debug('PLAYING STATUS: '+ClearNoneString(state.group(1)))
+		else:
+			Log.Debug('PLAYING STATUS: '+ClearNoneString(state.group(1)))
 	except:
+		oc = ObjectContainer(header="Play Error", message="An exception occurred trying to access VLC.", no_cache=True)
 		Log.Debug("ERROR: VLCPlayCheck()")
 	return oc
 	
@@ -564,17 +575,27 @@ def GetStatusMetaVLC(url):
 	
 ####################################################################################################
 @route('/video/vlcplayer/GetPlayListVLC')
-def GetPlayListVLC():
+def GetPlayListVLC(new=False):
 	if int(Dict['VLCpid']) > 0:
 		url = VLC_REQ % (Prefs['password'], Prefs['vlc_host'], Prefs['vlc_port_control'])+ VLC_PL
 		Log.Debug("EXECUTING: GetPlayListVLC("+url+")")
 		try:
 			page = urllib.urlopen(url).read()
 			page = page.split('\n')
-			Dict['PlayList'] = dict() # or {}
+			if new:
+				Dict['PlayList'] = dict() # or {}
 			for line in page:
 				if line.startswith('<leaf'):
-					Dict['PlayList'].update({re.search('.*(?:uri="([^"]*))', line).group(1):[re.search('.*(?:id="([^"]*))', line).group(1), re.search('.*(?:duration="([^"]*))', line).group(1), re.search('.*(?:name="([^"]*))', line).group(1)]})
+					uri = re.search('.*(?:uri="([^"]*))', line).group(1).replace('%20', ' ')
+					id = re.search('.*(?:id="([^"]*))', line).group(1)
+					duration = re.search('.*(?:duration="([^"]*))', line).group(1)
+					name = re.search('.*(?:name="([^"]*))', line).group(1)
+					if uri in Dict['PlayList']: # update the playlist
+						Dict['PlayList'][uri][0] = id
+						Dict['PlayList'][uri][1] = duration
+						Dict['PlayList'][uri][2] = name
+					else: # add the new item(s)
+						Dict['PlayList'].update({uri:[id, duration, name]})
 			Log.Debug('PLAYLIST: '+demjson.encode(Dict['PlayList']))
 		except:
 			Log.Debug("ERROR: GetPlayListVLC()")
@@ -617,9 +638,10 @@ def PlayListVLC(url, url_meta):
 			else:
 				label = title
 			oc.add(DirectoryObject(key = Callback(PLItem, url=url, url_meta=url_meta, uri=item, label=label), title = title, thumb = R(T_MOVIE)))
+	oc.add(DirectoryObject(key = Callback(PLVSync, url=url), title = 'SYNC -> VLC Playlist', thumb = R(T_SYNC)))
 	oc.add(DirectoryObject(key = Callback(PLVClear, url=url), title = 'CLEAR -> VLC Playlist', thumb = R(T_DELETE)))
 	oc.add(DirectoryObject(key = Callback(PLVAdd, url=url), title = 'ADD -> Plex Playlist to VLC', thumb = R(T_LEFT)))
-	oc.add(DirectoryObject(key = Callback(PLXReplace), title = 'REPLACE -> Plex Playlist with VLC', thumb = R(T_RIGHT)))
+	oc.add(DirectoryObject(key = Callback(PLVReplace), title = 'REPLACE -> Plex Playlist with VLC', thumb = R(T_RIGHT)))
 	return oc
 	
 ####################################################################################################
@@ -634,22 +656,25 @@ def PLItem(url, url_meta, uri, label=''):
 	oc = ObjectContainer(title1='Play List Item')
 	if int(Dict['VLCpid']) > 0:
 		Log.Debug("EXECUTING: PLItem()")
-		oc.add(DirectoryObject(key = Callback(PLItemSelect, url=url, url_meta=url_meta, uri=uri), title = 'SELECT -> '+label, thumb = R(T_MOVIE)))
-		oc.add(DirectoryObject(key = Callback(PLItemDelete, url=url, uri=uri), title = 'DELETE -> '+label, thumb = R(T_DELETE)))
+		if str(uri) in Dict['PlayList']:
+			oc.add(DirectoryObject(key = Callback(PLItemSelect, url=url, url_meta=url_meta, uri=uri), title = 'SELECT -> '+label, thumb = R(T_MOVIE)))
+			oc.add(DirectoryObject(key = Callback(PLItemDelete, url=url, uri=uri), title = 'DELETE -> '+label, thumb = R(T_DELETE)))
 	return oc
 	
 ####################################################################################################
 @route('/video/vlcplayer/PLItemSelect')
 def PLItemSelect(url, url_meta, uri):
-	oc = ObjectContainer(title1='PLItemSelect')
+	oc = ObjectContainer(header="Playlist Selection", message="The Playlist item was selected.", no_cache=True)
 	if int(Dict['VLCpid']) > 0:
 		Log.Debug("EXECUTING: PLItemSelect("+str(uri)+")")
 		if str(uri) in Dict['PlayList']:
 			try:
 				page = urllib.urlopen(url+'pl_play&id='+str(Dict['PlayList'][uri][0])).read()
-				oc = VLCPlayCheck(url_meta, Dict['PlayList'][uri][2])
+				oc = VLCPlayCheck(oc, url_meta, Dict['PlayList'][uri][2])
 				page = urllib.urlopen(url+'pl_stop').read()
+				Log.Debug("SUCCESS: PLItemSelect()")
 			except:
+				oc = ObjectContainer(title1='PLItemSelect')
 				Log.Debug("ERROR: PLItemSelect()")
 		else:
 			oc = ObjectContainer(header="Playlist Error", message="The Playlist item does not exist.", no_cache=True)
@@ -664,6 +689,7 @@ def PLItemDelete(url, uri):
 		if str(uri) in Dict['PlayList']:
 			try:
 				page = urllib.urlopen(url+'pl_delete&id='+str(Dict['PlayList'][uri][0])).read()
+				oc = ObjectContainer(header="Playlist Deletion", message="The Playlist item was deleted.", no_cache=True)
 			except:
 				Log.Debug("ERROR: PLItemDelete()")
 			del Dict['PlayList'][uri]
@@ -695,16 +721,28 @@ def PLVAdd(url):
 				page = urllib.urlopen(url+'in_enqueue&input='+str(uri).replace(' ', '%20')).read()
 			except:
 				Log.Debug("ERROR: PLVAdd()")
-		GetPlayListVLC()
+		GetPlayListVLC(False)
 	return oc
 	
 ####################################################################################################
-@route('/video/vlcplayer/PLXReplace')
-def PLXReplace():
-	oc = ObjectContainer(title1='PLXReplace')
+@route('/video/vlcplayer/PLVReplace')
+def PLVReplace():
+	oc = ObjectContainer(title1='PLVReplace')
 	if int(Dict['VLCpid']) > 0:
-		Log.Debug("EXECUTING: PLXReplace()")
-		GetPlayListVLC()
+		Log.Debug("EXECUTING: PLVReplace()")
+		GetPlayListVLC(True)
+	return oc
+	
+####################################################################################################
+@route('/video/vlcplayer/PLVSync')
+def PLVSync(url):
+	oc = ObjectContainer(title1='PLVSync')
+	if int(Dict['VLCpid']) > 0:
+		Log.Debug("EXECUTING: PLVSync()")
+		GetPlayListVLC(False) # update (some Plex Playlist items may have bogus IDs)
+		PLVClear(url) # clear
+		PLVAdd(url) # replace
+		PLVReplace() # Synchronize
 	return oc
 	
 ####################################################################################################
