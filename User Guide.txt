@@ -22,6 +22,8 @@ SETTINGS:
 
 Use URL Service checkbox - if checked the channel uses the Plex URL service system, otherwise everything is configured explicitly.
 Transcode the stream?  yes/no - if yes the stream is transcoded (see the __init__.py file, VLC_ARGS1)
+VLC stream transcoding string(s) - only one currently configured
+VLC stream mux String(s) - only one currently configured
 VLC Host IP: The IP address for the VLC output stream and the web interface. This is checked using a regular expression pattern
 VLC Host Port for stream - (what it says) This is checked using a regular expression pattern
 VLC Host {/Path/}Page -> space for none - the VLC path/page reference set for the output stream. This is checked using a regular expression pattern

@@ -15,6 +15,26 @@
 	},
 	
 	{
+		"id": 		"vlc_transcode",
+		"label": 	"VLC stream transcoding string(s)",
+		"type": 	"enum",
+		"values":	[ "none"
+					, "transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}"
+					],
+		"default": 	"transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}"
+	},
+	
+	{
+		"id": 		"vlc_mux",
+		"label": 	"VLC stream mux string(s)",
+		"type": 	"enum",
+		"values":	[ "none"
+					, "mux=ts"
+					],
+		"default": 	"mux=ts"
+	},
+	
+	{
 		"id": 		"vlc_host",
 		"label": 	"VLC Host IP",
 		"type": 	"text",

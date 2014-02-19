@@ -1,3 +1,6 @@
+Currently, the coding errors seem to be well under control.  Need further Roku usage testing. (2/18/2014)
+
+
 I use VLC to transcode and stream back out an internet stream feed from a direct video file URL, like:
 http://cs514220v4.vk.me/u5723140/videos/88479e1a6c.360.mp4   (this link no longer exists)
 

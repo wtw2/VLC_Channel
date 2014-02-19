@@ -12,8 +12,9 @@ import errno
 # for processing CSV strings
 import csv
 #import ctypes
+import ast # for literal_eval
 # http://cs518408v4.vk.me/u5723140/videos/a53afa5870.360.mp4 -> NG
-# http://cs518408v4.vk.me/u5723140/videos/b578c40680.360.mp4 -> new
+# http://cs514220v4.vk.me/u5723140/videos/7917d4cc3f.360.mp4 -> new
 
 # http://dev.plexapp.com/docs/api/constkit.html
 
@@ -29,7 +30,7 @@ import csv
 # an alternative:
 # http://n0tablog.wordpress.com/2009/02/09/controlling-vlc-via-rc-remote-control-interface-using-a-unix-domain-socket-and-no-programming/
 ####################################################################################################
-# Last updated: 02/16/2014
+# Last updated: 02/18/2014
 ####################################################################################################
 
 PREFIX       = '/video/vlcplayer'
@@ -54,11 +55,10 @@ VLC_APP_PATH = 'C:\Program Files (x86)\VideoLAN\VLC\\'
 VLC_APP_FILE = 'vlc.exe'
 VLC_APP      = VLC_APP_PATH + VLC_APP_FILE + ' '
 VLC_ARGS0    = '--sout=#'
-VLC_ARGS1    = 'transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}'
-VLC_ARGS2    = 'http{dst=:%s/%s} --sout-all --sout-keep'
+#VLC_ARGS1    = 'transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}'
+#VLC_ARGS1a   = 'mux=ts'
+VLC_ARGS2    = 'http{%sdst=:%s/%s} --sout-all --sout-keep'
 VLC_ARGS3    = ' --extraintf=http --http-host=%s --http-port=%s --http-password=%s'
-VLC_ARGS     = VLC_ARGS0+VLC_ARGS2+VLC_ARGS3
-VLC_ARGS_T   = VLC_ARGS0+VLC_ARGS1+':'+VLC_ARGS2+VLC_ARGS3
 VLC_REQ      = 'http://:%s@%s:%s/requests/'
 VLC_STAT     = 'status.xml'
 VLC_PL       = 'playlist.xml'
@@ -85,7 +85,7 @@ RE_URL_MAP   = Regex('^%s$' % (ST_URL_MAP))
 ST_URL_MAP2  = '(?:(http|mms|rtsp)|(?P<rtp>rtp|udp))://(?(rtp)(?:%s)?@)%s(?(rtp):%s)?(?(rtp)|%s)' % (ST_DOM_MAP, ST_DOM_MAP, ST_PORT_MAP, ST_PAGE_MAP2)
 RE_URL_MAP2  = Regex('^%s$' % (ST_URL_MAP2))
 # https://wiki.videolan.org/Documentation:Advanced_Use_of_VLC/
-ST_FQFILE_MAP = '[a-zA-Z]:%s' % (ST_PAGE_MAP)
+ST_FQFILE_MAP = '(?:(?:[a-zA-Z]:)|(?:%%[a-zA-Z_]+%%))%s' % (ST_PAGE_MAP) # must use % to escape % in string
 RE_FQFILE_MAP = Regex('^%s$' % (ST_FQFILE_MAP))
 RE_YES_NO    = Regex('^(?i)(?:y(?:es)?|no?)$')
 RE_COMMAS    = Regex('(,)(?=(?:[^\"]|\"[^\"]*\")*$)') # all commas not between quotes
@@ -113,6 +113,7 @@ def Start():
 	Log.Debug("EXECUTING: Start()")
 
 	Plugin.AddPrefixHandler(PREFIX, MainMenu, TITLE, ICON, ART)
+	Plugin.Nice(0) # a resource hog
 
 	ObjectContainer.title1 = NAME
 	ObjectContainer.art = R(ART)
@@ -134,6 +135,7 @@ def Start():
 	Dict['fq_file_current'] = ''
 	Dict['fq_url_current'] = ''
 	Dict['fq_uri_current'] = ''
+	Dict['transcode_current'] = ''
 #	Dict['PLID'] = -1
 	Dict['VLCconfigured'] = AppHandleCheck(vlc_proc)
 #	Dict['PlayList'] = dict() # also: {} => save the playlist for future use
@@ -141,8 +143,6 @@ def Start():
 	Dict['StreamType'] = None
 
 	Log.Debug('VLC_APP= '+VLC_APP)
-	Log.Debug('VLC_ARGS= '+VLC_ARGS)
-	Log.Debug('VLC_ARGS_T= '+VLC_ARGS_T)
 	Log.Debug('ST_PAGE_MAP= '+ST_PAGE_MAP)
 	Log.Debug('ST_URL_MAP= '+ST_URL_MAP)
 	Log.Debug('ST_URL_MAP2= '+ST_URL_MAP2)
@@ -165,6 +165,15 @@ def InitializePrefs():
 #	if match == None:
 	if Prefs['transcode'] == None:
 		u = urllib.urlopen(PLEX_PREFS+'transcode=')
+	Dict['transcode_current'] = Prefs['transcode']
+		
+	if Prefs['vlc_transcode'] == None:
+		u = urllib.urlopen(PLEX_PREFS+'vlc_transcode=')
+	Dict['vlc_transcode_current'] = Prefs['vlc_transcode']
+		
+	if Prefs['vlc_mux'] == None:
+		u = urllib.urlopen(PLEX_PREFS+'vlc_mux=')
+	Dict['vlc_mux_current'] = Prefs['vlc_mux']
 		
 	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
 	if match == None:
@@ -205,9 +214,10 @@ def InitializePrefs():
 	
 ####################################################################################################
 def ValidatePrefs():
+	global vlc_proc
 # NOTE: MessageContainer() is deprecated
 # NOTE: Returning an ObjectContainer() with an error does not display the message.
-#       Probably because Plex is already in a popup (Preferences).
+#       Possibly because Plex is already in a popup (Preferences).
 	Log.Debug("EXECUTING: ValidatePrefs()")
 	Log.Debug("***************************************")
 	
@@ -216,6 +226,17 @@ def ValidatePrefs():
 #		Log.Debug("STRM  transcode= "+match.group(0))
 #	else:
 #		Log.Debug("STRM  transcode= INVALID")
+	if Prefs['transcode'] != Dict['transcode_current']:
+		Dict['transcode_current'] = Prefs['transcode']
+		vlc_proc = None
+		
+	if Prefs['vlc_transcode'] != Dict['vlc_transcode_current']:
+		Dict['vlc_transcode_current'] = Prefs['vlc_transcode']
+		vlc_proc = None
+		
+	if Prefs['vlc_mux'] != Dict['vlc_mux_current']:
+		Dict['vlc_mux_current'] = Prefs['vlc_mux']
+		vlc_proc = None
 		
 	match = re.search(RE_IP_MAP, Prefs['vlc_host'])
 	if match != None:
@@ -366,17 +387,25 @@ def MainMenu():
 	oc = ObjectContainer()
 #	oc.add(do)
 
+	vlc_args = VLC_ARGS0
+	temp = ''
 	if Prefs['transcode'][0] == 'y':
-		vlc_args = VLC_ARGS_T
-	else:
-		vlc_args = VLC_ARGS
-	vlc_args = vlc_args % (Prefs['vlc_port_stream'], Prefs['vlc_page'], Prefs['vlc_host'], Prefs['vlc_port_control'], Prefs['password'])
+		if Prefs['vlc_transcode'] != 'none':
+			vlc_args += Prefs['vlc_transcode'] + ':'
+		if Prefs['vlc_mux'] != 'none':
+			temp = Prefs['vlc_mux']+','
+	vlc_args += VLC_ARGS2 % (temp, Prefs['vlc_port_stream'], Prefs['vlc_page'])
+	vlc_args += VLC_ARGS3 % (Prefs['vlc_host'], Prefs['vlc_port_control'], Prefs['password'])
+#	Log.Debug('vlc_args= '+vlc_args)
 	
 	# access requires no username, only a password
 	url_vlc_req = VLC_REQ % (Prefs['password'], Prefs['vlc_host'], Prefs['vlc_port_control'])
 	url_vlc_cmd = url_vlc_req + VLC_STAT + '?command='
 	url_vlc_meta = url_vlc_req + VLC_META
 #	url_vlc_cmd = VLC_CON % (Prefs['password'], Prefs['vlc_host'], Prefs['vlc_port_control']) # doesn't work
+
+	fq_file = 'file:///'+str(Prefs['fq_file']).replace(' ', '%20')
+	Dict['app'] = {'app_app':VLC_APP, 'app_file':fq_file, 'app_args':vlc_args, 'vlc':{'url_stop':url_vlc_cmd+'pl_stop', 'url_meta':url_vlc_meta}}
 
 	# Log current settings/preferences click icon
 	Log.Debug("#######################################")
@@ -421,17 +450,17 @@ def MainMenu():
 	
 	# https://wiki.videolan.org/VLC_HTTP_requests/
 	oc.add(DirectoryObject(key = Callback(PlayListVLC, url=url_vlc_cmd, url_meta=url_vlc_meta), title = "Play List", thumb = R(T_PLAYLIST)))
-	oc.add(DirectoryObject(key = Callback(PlayVLC, url=url_vlc_cmd+'pl_play'), title = "Play VLC", thumb = R(T_PLAY)))
+	oc.add(DirectoryObject(key = Callback(PlayVLC, url=url_vlc_cmd+'pl_play', url_meta=url_vlc_meta), title = "Play VLC", thumb = R(T_PLAY)))
 	oc.add(DirectoryObject(key = Callback(PauseVLC, url=url_vlc_cmd+'pl_pause'), title = "Pause VLC", thumb = R(T_PAUSE)))
 	oc.add(DirectoryObject(key = Callback(StopVLC, url=url_vlc_cmd+'pl_stop'), title = "Stop VLC", thumb = R(T_STOP)))
 	
 	if int(Dict['VLCpid']) < 0:
 #		fq_file = '"'+str(Prefs['fq_file']).replace('/', '\\')+'"' # change frontslashes to backslashes (Windows)
 		fq_file = 'file:///'+str(Prefs['fq_file']).replace(' ', '%20')
-		oc.add(DirectoryObject(key = Callback(StartApp, app_app=VLC_APP, app_file=fq_file, app_args=vlc_args), title = "Launch VLC"))
+		oc.add(DirectoryObject(key = Callback(StartApp, app=Dict['app']), title = "Launch VLC"))
 	elif not Dict['VLCconfigured']:
 		fq_file = 'file:///'+str(Prefs['fq_file']).replace(' ', '%20')
-		oc.add(DirectoryObject(key = Callback(ConfigureApp, app_app=VLC_APP, app_file=fq_file, app_args=vlc_args), title = "Restart VLC"))
+		oc.add(DirectoryObject(key = Callback(ConfigureApp, app=Dict['app']), title = "Restart VLC"))
 	else:
 		oc.add(DirectoryObject(key = Callback(StopApp, app_pid=Dict['VLCpid']), title = "Exit VLC"))		
 		
@@ -472,17 +501,44 @@ def FourthMenu():
 	
 ####################################################################################################
 @route('/video/vlcplayer/PlayVLC')
-def PlayVLC(url):
+def PlayVLC(url, url_meta):
 	if int(Dict['VLCpid']) > 0:
 		Log.Debug("EXECUTING: PlayVLC("+url+")")
 		try:
 			page = urllib.urlopen(url).read()
 			# HTTP.Request won't accept HTTP Basic Authentication credentials in the URL
 			#page = HTTP.Request(url).content
+			WaitPlayVLC({'url_meta':url_meta})
 		except:
 			Log.Debug("ERROR: PlayVLC()")
 	oc = ObjectContainer(title1='VLC Play')
 	return oc
+	
+####################################################################################################
+@route('/video/vlcplayer/WaitPlayVLC')
+def WaitPlayVLC(vlc): # vlc is a Dict[]
+	Log.Debug("EXECUTING: WaitPlayVLC()")
+	i = 20
+	j = 1
+	while (i > 0): # wait for the counter to start runing
+		try:
+			page = urllib.urlopen(vlc['url_meta']).read()
+			position = re.search('.*"position":([^,]*)', page)
+			if position:
+				if float(position.group(1)) == 0:
+					Log.Debug('WaitPlayVLC(): '+position.group(1))
+					time.sleep(j)
+					j = 3 - j
+					--i
+				else:
+					if 'url_stop' in vlc:
+						page = urllib.urlopen(vlc['url_stop']).read()
+					Log.Debug('WaitPlayVLC(): '+position.group(1))
+					break
+		except:
+			time.sleep(2)
+			Log.Debug("ERROR: WaitPlayVLC()")
+	return
 	
 ####################################################################################################
 @route('/video/vlcplayer/PauseVLC')
@@ -787,34 +843,40 @@ def AppRunning(app_app_file):
 	
 ####################################################################################################
 #   This function configures the application.
-#       app_app - fully qualified application name
-#       app_file - file to open using the application
-#       app_args - application arguments
+#       Uses: [Dict['app']
+#           app_app - fully qualified application name
+#           app_file - file to open using the application
+#           app_args - application arguments
 #
 @route('/video/vlcplayer/ConfigureApp')
-def ConfigureApp(app_app, app_file, app_args):
+def ConfigureApp(app=None):
 	Log.Debug("EXECUTING: ConfigureApp()")
 	if int(Dict['VLCpid']) > 0:
 		oc = StopApp(Dict['VLCpid'])
 		time.sleep(1)
-		oc = StartApp(app_app, app_file, app_args)
+		oc = StartApp(app)
 	oc = ObjectContainer(title1='Restarted App')
 	return oc
 	
 ####################################################################################################
 #   This function launches the application.
-#       app_app - fully qualified application name
-#       app_file - file to open using the application
-#       app_args - application arguments
+#       Uses: [Dict['app']
+#           app_app - fully qualified application name
+#           app_file - file to open using the application
+#           app_args - application arguments
 #
 @route('/video/vlcplayer/StartApp')
-def StartApp(app_app, app_file, app_args):
+def StartApp(app=None):
 	global vlc_proc
 	if int(Dict['VLCpid']) < 0:
+		if isinstance(app, str):
+			app = ast.literal_eval(app) # convert string back to Dict
+		elif app and not isinstance(app, dict):
+			return ObjectContainer(header="StartApp Error", message="StartApp() was called with an inappropriate parameter.", no_cache=True)
 		Log.Debug("EXECUTING: StartApp()")
 		# Start the app in a new thread in the security context of the calling process
-		vlc_proc = subprocess.Popen([str(app_app), [ClearNoneString(app_file)], [ClearNoneString(app_args)]])
-		time.sleep(2)
+		vlc_proc = subprocess.Popen([Dict['app']['app_app'], [ClearNoneString(Dict['app']['app_file'])], [ClearNoneString(Dict['app']['app_args'])]])
+		WaitPlayVLC(app['vlc'])
 #		Log.Debug('Running Application:  {' + str(app_app) + '}, with the following arguments {' + subprocess.list2cmdline([[ClearNoneString(app_file)], [ClearNoneString(app_args)]]) + '}')
 		Dict['VLCpid'] = int(vlc_proc.pid)
 		Dict['VLCconfigured'] = True
@@ -832,7 +894,6 @@ def StopApp(app_pid):
 	global vlc_proc
 	if int(app_pid) > 0:
 		Log.Debug("EXECUTING: StopApp()")
-		Dict['VLCconfigured'] = False
 		if vlc_proc:
 			Log.Debug("app_proc exists")
 			vlc_proc.terminate()
@@ -862,6 +923,7 @@ def StopApp(app_pid):
 		oc = ObjectContainer(title1='Exited App')
 	else:
 		oc = ObjectContainer(title1='App is not running')
+	Dict['VLCconfigured'] = False
 	vlc_proc = None
 	return oc
 	
