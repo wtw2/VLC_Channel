@@ -22,8 +22,8 @@ SETTINGS:
 
 Use URL Service checkbox - if checked the channel uses the Plex URL service system, otherwise everything is configured explicitly.
 Transcode the stream?  yes/no - if yes the stream is transcoded (see the __init__.py file, VLC_ARGS1)
-VLC stream transcoding string(s) - only one currently configured
-VLC stream mux String(s) - only one currently configured
+VLC stream transcoding string(s) - only one currently configured, easily changed in DefaultPrefs.json
+VLC stream mux String(s) - only one currently configured, easily changed in DefaultPrefs.json
 VLC Host IP: The IP address for the VLC output stream and the web interface. This is checked using a regular expression pattern
 VLC Host Port for stream - (what it says) This is checked using a regular expression pattern
 VLC Host {/Path/}Page -> space for none - the VLC path/page reference set for the output stream. This is checked using a regular expression pattern
@@ -35,28 +35,33 @@ VLC Source (used raw) - the full URI required by VLC to access a streamable or s
 
 
 
-Main Menu:
+Main Menu: (all controls provide feedback messages for clarity)
 
 Play VLC Stream - this launches the Plex video player to view the VLC output stream.
 Play List - opens another directory level for Playlist control
 Play VLC - Starts VLC playing the currently selected item
 Pause VLC - Pause VLC playing (toggle) 
 Stop VLC - Stop VLC playing
-Launch VLC - This starts up the VLC application
+Launch VLC - This starts up the VLC application and syncs the playlists automatically
 {or}
-Restart VLC - This closes the detected VLC application and then starts another instance with the required parameter settings
+Restart VLC - This closes the detected VLC application (not started with Launch VLC) and then starts another instance with this Channel's parameter settings and syncs the playlists automatically
 {or}
-Exit VLC - The closes the VLC application started by: Launch VLC
+Exit VLC - This closes the VLC application started by: Launch VLC
 Status VLC - not currenty used
 Refresh - refreshes this directory
 
 
 
 
-Playlist Menu:
+Playlist Menu: (The currently selected item does not have a folder icon)
 A list of current VLC play items appears first
 ...
-SYNC -> VLC Playlist
+SYNC -> VLC Playlist - synchronizes teh Playlist in this Channel with the one on VLC
 CLEAR -> VLC Playlist - deletes all items in the playlist in the VLC application
-ADD -> Plex Playlist to VLC - (what it says)
-REPLACE -> Plex Playlist with VLC - (what it says)
+ADD -> Plex Playlist to VLC - This only adds what is in this Channel's playlist that is not in VLC's
+REPLACE -> Plex Playlist with VLC - Replaces (does not merge) this Channel's playlist with the VLC playlist
+
+Selecting a playlist item generates another menu:
+SELECT ->  - selects the identified item for playing (it does not leave it playing)
+DELETE ->  - deletes the identified item
+
