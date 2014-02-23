@@ -6,15 +6,14 @@ import time
 import demjson
 # for urlopen
 import urllib
-# to launch/exit an application
-import os, subprocess, signal
+# to launch/exit/get_info an application
+import os, subprocess, signal # for os.path and os.kill
+import ctypes # for ctypes.windll
 import errno
 # for processing CSV strings
 import csv
-#import ctypes
 import ast # for literal_eval
-# http://cs518408v4.vk.me/u5723140/videos/a53afa5870.360.mp4 -> NG
-# http://cs518408v4.vk.me/u5723140/videos/735b25cfc1.360.mp4 -> new
+# http://cs514220v4.vk.me/u5723140/videos/228d1d52bc.360.mp4 -> 2/22/2014
 
 # http://dev.plexapp.com/docs/api/constkit.html
 
@@ -30,7 +29,7 @@ import ast # for literal_eval
 # an alternative:
 # http://n0tablog.wordpress.com/2009/02/09/controlling-vlc-via-rc-remote-control-interface-using-a-unix-domain-socket-and-no-programming/
 ####################################################################################################
-# Last updated: 02/21/2014
+# Last updated: 02/22/2014
 #
 # Issues:
 # When adding a DirectoryObject to an ObjectContainer (and nothing else), there must be at least two
@@ -82,28 +81,29 @@ VLC_CON      = 'http://:%s@%s:%s/?control='
 PLEX_PREFS   = 'http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?'
 
 # Great regex tester -> http://regex101.com/
-ST_JSON_MAP  = '.*\"(%s)\":(?:(?P<dq>\")|(?P<cy>{)|)((?(dq)[^"]*)|(?(cy)[^}]*)|(?:[\d]*\.?[\d]*))(?:(?(dq)\"|(?(cy)})))(?:,|$|\s)'
-ST_DOM_MAP   = '(?:(?:[0-9a-zA-Z_-]+\.){1,3})[a-zA-Z]{2,4}'
-RE_DOM_MAP   = Regex('^%s$' % (ST_DOM_MAP))
-ST_IP_MAP    = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}'
-RE_IP_MAP    = Regex('^%s$' % (ST_IP_MAP))
-ST_PORT_MAP  = '[1-9][0-9]{0,4}'
-RE_PORT_MAP  = Regex('^%s$' % (ST_PORT_MAP))
-ST_PATH_MAP  = '((?P<path2>/)(?(path2)(?:[0-9a-zA-Z _-]+/)+))?' # added space character
-ST_FILE_MAP  = '([0-9a-zA-Z _\-\.]+\.[0-9a-zA-Z]{2,4})?' # added space character
-ST_FILE_MAP2 = '((?:[0-9a-zA-Z _\-]+(?P<dot>\.))*(?(dot)[0-9a-zA-Z]{2,4}|[0-9a-zA-Z]*))?' # added space character
-ST_PAGE_MAP  = '%s(?(path2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (initial slash optional)
-ST_PAGE_MAP2 = '%s(?(path2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP2) # WARNING: allows for filename only (initial slash optional)
-RE_PAGE_MAP  = Regex('^%s$' % (ST_PAGE_MAP)) # path is group(1), file is group(3) {relative}
-ST_URL_MAP   = 'http://%s:%s%s' % (ST_IP_MAP, ST_PORT_MAP, ST_PAGE_MAP)
-RE_URL_MAP   = Regex('^%s$' % (ST_URL_MAP))
-ST_URL_MAP2  = '(?:(http|mms|rtsp)|(?P<rtp>rtp|udp))://(?(rtp)(?:%s)?@)%s(?(rtp):%s)?(?(rtp)|%s)' % (ST_DOM_MAP, ST_DOM_MAP, ST_PORT_MAP, ST_PAGE_MAP2)
-RE_URL_MAP2  = Regex('^%s$' % (ST_URL_MAP2))
+ST_JSON_MAP  = '.*\"(%s)\":(?:(?P<dq>\")|(?P<cy>{)|)((?(dq)[^"]*)|(?(cy)[^}]*)|(?:[\d]*\.?[\d]*))(?:(?(dq)\"|(?(cy)})))(?:,|$|\s)' # no nested braces (simple JSON)
+ST_DOM_MAP    = '(?:(?:[0-9a-zA-Z_-]+\.){1,3})[a-zA-Z]{2,4}'
+RE_DOM_MAP    = Regex('^%s$' % (ST_DOM_MAP))
+ST_IP_MAP     = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}'
+RE_IP_MAP     = Regex('^%s$' % (ST_IP_MAP))
+ST_PORT_MAP   = '[1-9][0-9]{0,4}'
+RE_PORT_MAP   = Regex('^%s$' % (ST_PORT_MAP))
+ST_PATH_MAP   = '((?P<path2>/)(?(path2)(?:[0-9a-zA-Z _-]+/)+))?' # added space character
+ST_FILE_MAP   = '([0-9a-zA-Z _\-\.]+\.[0-9a-zA-Z]{2,4})?' # added space character
+ST_FILE_MAP2  = '((?:[0-9a-zA-Z _\-]+(?P<dot>\.))*(?(dot)[0-9a-zA-Z]{2,4}|[0-9a-zA-Z]*))?' # added space character
+ST_PAGE_MAP   = '%s(?(path2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (initial slash optional)
+ST_PAGE_MAP2  = '%s(?(path2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP2) # WARNING: allows for filename only (initial slash optional)
+RE_PAGE_MAP   = Regex('^%s$' % (ST_PAGE_MAP)) # path is group(1), file is group(3) {relative}
+ST_URL_MAP    = 'http://%s:%s%s' % (ST_IP_MAP, ST_PORT_MAP, ST_PAGE_MAP)
+RE_URL_MAP    = Regex('^%s$' % (ST_URL_MAP))
+ST_URL_MAP2   = '(?:(http|mms|rtsp)|(?P<rtp>rtp|udp))://(?(rtp)(?:%s)?@)%s(?(rtp):%s)?(?(rtp)|%s)' % (ST_DOM_MAP, ST_DOM_MAP, ST_PORT_MAP, ST_PAGE_MAP2)
+RE_URL_MAP2   = Regex('^%s$' % (ST_URL_MAP2))
 # https://wiki.videolan.org/Documentation:Advanced_Use_of_VLC/
-ST_FQFILE_MAP = '(?:(?:[a-zA-Z]:)|(?:%%[a-zA-Z_]+%%))%s' % (ST_PAGE_MAP) # must use % to escape % in string
+ST_LOC_MAP    = '(?P<loc>(?:[a-zA-Z]:)|(?:%%[a-zA-Z_]+%%))' # must use % to escape % in string
+ST_FQFILE_MAP = '%s%s' % (ST_LOC_MAP, ST_PAGE_MAP)
 RE_FQFILE_MAP = Regex('^%s$' % (ST_FQFILE_MAP))
-RE_YES_NO    = Regex('^(?i)(?:y(?:es)?|no?)$')
-RE_COMMAS    = Regex('(,)(?=(?:[^\"]|\"[^\"]*\")*$)') # all commas not between quotes
+RE_YES_NO     = Regex('^(?i)(?:y(?:es)?|no?)$')
+RE_COMMAS     = Regex('(,)(?=(?:[^\"]|\"[^\"]*\")*$)') # all commas not between quotes
 
 VLC_VIDEO_FORMATS = ['360p',	'720p',		'1080p']
 VLC_FMT           = [18,		22,			37]
@@ -112,6 +112,8 @@ VLC_VIDEOCODEC    = ['h264',	'h264',		'h264']
 VLC_AUDIOCODEC    = ['mp3',		'mp3',		'mp3']
 VLC_VIDEORES      = ['360',		'720',		'1080']
 VLC_STREAM_OPT    = 'mpegts'
+
+PROCESS_QUERY_INFORMATION = 0x0400
 
 METADATA     = '{"apiVersion":"2.1","data":{"id":"Hx9TwM4Pmhc","uploaded":"2013-04-25T14:00:46.000Z","updated":"2014-01-27T02:24:39.000Z","uploader":"Unknown","category":"Various","title":"VLC Video Stream","description":"This video is being streamed by VLC player from a file, device, or a direct video URL.","thumbnail":{"sqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/default.jpg","hqDefault":"http://i1.ytimg.com/vi/Hx9TwM4Pmhc/hqdefault.jpg"},"player":{"default":"http://www.youtube.com/watch?v=Hx9TwM4Pmhc&feature=youtube_gdata_player","mobile":"http://m.youtube.com/details?v=Hx9TwM4Pmhc"},"content":{"5":"http://www.youtube.com/v/Hx9TwM4Pmhc?version=3&f=videos&app=youtube_gdata","1":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYDSANFEgGUgZ2aWRlb3MM/0/0/0/video.3gp","6":"rtsp://r6---sn-o097zuek.c.youtube.com/CiILENy73wIaGQkXmg_OwFMfHxMYESARFEgGUgZ2aWRlb3MM/0/0/0/video.3gp"},"duration":3600,"aspectRatio":"widescreen","rating":4.1,"likeCount":"1","ratingCount":1,"viewCount":1,"favoriteCount":1,"commentCount":0,"accessControl":{"comment":"allowed","commentVote":"allowed","videoRespond":"moderated","rate":"allowed","embed":"allowed","list":"allowed","autoPlay":"allowed","syndicate":"allowed"}}}'
 
@@ -126,6 +128,7 @@ vlc_proc = None
 class main_states:
 	run, wait, open = range(3)
 main_state = main_states.open # state machine
+Log.Debug('GLOBAL VARIABLES WERE RESET.')
 ####################################################################################################
 def Start():
 	global vlc_proc
@@ -146,7 +149,8 @@ def Start():
 
 	TrackObject.thumb = R(ICON)
 
-	HTTP.CacheTime = CACHE_1HOUR
+#	HTTP.CacheTime = CACHE_1HOUR # in seconds
+	HTTP.CacheTime = 60
 	
 	# Store user "globals" in the Dict
 	Dict['Initialized'] = False
@@ -157,9 +161,10 @@ def Start():
 	Dict['fq_uri_current'] = ''
 	Dict['transcode_current'] = ''
 #	Dict['PLID'] = -1
-	Dict['PLselect'] = ''
-	Dict['VLCconfigured'] = AppHandleCheck(vlc_proc)[0]
+#	Dict['VLChandle'] = None -> changes if the channel is restarted (currently not used)
+#	Dict['VLCconfigured'] = AppHandleCheck(vlc_proc)[0] => performed in MainMenu
 #	Dict['PlayList'] = dict() # also: {} => save the playlist for future use
+	Dict['PLselect'] = ''
 	Dict['duration'] = None
 	Dict['StreamType'] = None
 	Dict['Playing'] = False
@@ -398,8 +403,8 @@ def MainMenu():
 	
 	# Check to see if VLC is actually running
 	Dict['VLCpid'] = AppRunning(VLC_APP_FILE)
-	Dict['VLCconfigured'], vlc_proc = AppHandleCheck(vlc_proc)
-
+	Dict['VLCconfigured'], vlc_proc = AppHandleCheck(vlc_proc, VLC_APP)
+	
 	InitializePrefs()
 
 #	do = DirectoryObject(key = Callback(SecondMenu), title = "Example Directory") # Don't add: Example Directory
@@ -455,7 +460,7 @@ def MainMenu():
 	Log.Debug("#######################################")
 	
 	if Dict['StreamType']:
-		vco = SourceVLC(url_vlc_cmd, url_vlc_meta, Dict['StreamType']['type'], Dict['StreamType']['fq_uri'])
+		vco = SourceVLC(url_vlc_cmd, url_vlc_meta, Dict['StreamType']['type'], Prefs[Dict['StreamType']['fq_uri']])
 		Dict['StreamType'] = None
 		UpdatePlayListVLC(False) # update the list
 		if vco:
@@ -518,6 +523,9 @@ def MainMenu():
 	oc.add(DirectoryObject(key = Callback(GetStatusMetaVLC, url=url_vlc_meta), title = "Status VLC", thumb = R(T_STATUS)))
 	oc.add(DirectoryObject(key = Callback(Refresh, vlc = Dict['app']['vlc']), title = "Refresh", thumb = R(T_REFRESH)))
 
+	# the problem with removing a VCO is not limited to the MainMenu:
+#	oc.add(DirectoryObject(key = Callback(SecondMenu, url=url_vlc, date=Dict['Today'], url_meta=url_vlc_meta), title = "Second Menu", thumb = ''))
+
 	# add the settings/preferences object/icon
 	oc.add(PrefsObject(title = L('Preferences')))
 #	oc.add(InputDirectoryObject(title=L('Search'), key=Callback(SearchMenu))) # The "Search" bubble
@@ -562,10 +570,15 @@ def Refresh(vlc):
 	
 ####################################################################################################
 @route('/video/vlcplayer/SecondMenu')
-def SecondMenu():
+def SecondMenu(url, date, url_meta):
+	Log.Debug("EXECUTING: SecondMenu()")
 	oc = ObjectContainer(title1='Second Menu')
 	do = DirectoryObject(key = Callback(ThirdMenu), title = "Example Directory")
 	oc.add(do)
+	if VLCPlayTest(url_meta) == 1:
+		Log.Debug('SecondMenu(): VLC is playing.')
+		vco = CreateVideoClipObject(url, date, url_meta=url_meta, key_string='VLC Player rating_key')
+		oc.add(vco)
 	return oc
 	
 ####################################################################################################
@@ -1101,20 +1114,51 @@ def PLVSync(url):
 #   If it is, then it should be poperly configured.
 #
 #	app = vlc_proc (object handle)
+#	fq_app = VLC_APP
 #
 @route('/video/vlcplayer/AppHandleCheck')
-def AppHandleCheck(app):
-#	global vlc_proc
+def AppHandleCheck(app, fq_app):
 	Log.Debug("EXECUTING: AppHandleCheck()")
-	if app and app.poll() == None: # the application is still running
+#	interesting function: determines if a string occurs anywhere in any of a list of strings
+#	http://stackoverflow.com/questions/2892931/longest-common-substring-from-more-than-two-strings-python
+#	is_common_substr = lambda s, strings: all(s in x for x in strings) # "all" not recognized keyword here
+			
+	app_found = False
+	if not app and Dict['VLCpid'] > 0:
+	# Try to determine if the running instance of the app was launched by this channel
+		# http://msdn.microsoft.com/en-us/library/ms684880.aspx
+		# http://msdn.microsoft.com/en-us/library/ms684320(v=vs.85).aspx -> OpenProcess
+		# http://msdn.microsoft.com/en-us/library/ms683215(v=vs.85).aspx -> GetProcessId
+		# http://stackoverflow.com/questions/6980246/how-can-i-find-a-process-by-name-and-kill-using-ctypes
+#		Psapi = ctypes.WinDLL('Psapi.dll')
+#		GetProcessImageFileName = Psapi.GetProcessImageFileNameA
+#		Kernel32 = ctypes.WinDLL('kernel32.dll')
+#		OpenProcess = Kernel32.OpenProcess
+
+		MAX_PATH_LEN = 260
+		hProcess = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_INFORMATION, False, int(Dict['VLCpid']))
+		if hProcess:
+			Log.Debug('AppHandleCheck() handle: '+str(hProcess)+'   '+str(Dict['VLChandle']))
+			pid = ctypes.windll.kernel32.GetProcessId(hProcess) # kind of redundant
+			ImageFileName = (ctypes.c_char*MAX_PATH_LEN)()
+			if ctypes.windll.psapi.GetProcessImageFileNameA(hProcess, ImageFileName, MAX_PATH_LEN) > 0:
+				filename = os.path.basename(ImageFileName.value)
+			s1 = fq_app.strip(' ')[::-1] # trim spaces and reverse the strings
+			s2 = ImageFileName.value.strip(' ')[::-1]
+			i = 0
+			while (s1[i] == s2[i]):
+				i += 1 # compare the filename and path
+#			Log.Debug('>>>>>> '+s1[i::][::-1]+'  '+re.search(ST_LOC_MAP, fq_app).group('loc'))
+			# and int(Dict['VLChandle']) == hProcess -> this is not true if the channel is restarted
+			if int(Dict['VLCpid']) == pid and re.search(ST_LOC_MAP, fq_app).group('loc') == s1[i::][::-1]:
+				app_found = True
+
+	if app_found or (app and app.poll() == None): # the application is still running
 		Log.Debug('APP is RUNNING!')
 		list = [True, app]
-#		return True
 	else:
-#		vlc_proc = None
 		Log.Debug('APP is MISSING!')
 		list = [False, app]
-#		return False
 	return list
 	
 ####################################################################################################
@@ -1186,6 +1230,7 @@ def StartApp(app=None):
 		# Start the app in a new thread in the security context of the calling process
 		vlc_proc = subprocess.Popen([Dict['app']['app_app'], [ClearNoneString(Dict['app']['app_file'])], [ClearNoneString(Dict['app']['app_args'])]])
 		Dict['VLCpid'] = int(vlc_proc.pid)
+		Dict['VLChandle'] = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_INFORMATION, False, int(vlc_proc.pid))
 		Dict['VLCconfigured'] = True
 		Dict['Playing'] = False
 		Dict['Paused'] = False
