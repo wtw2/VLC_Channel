@@ -1,4 +1,4 @@
-Working more reliably than ever.  UI is in pretty good shape.  Seems to play nice with Roku.  (2/21/2014)
+Working more reliably than ever.  UI is in pretty good shape.  Seems to play nice with Roku.  (2/23/2014)
 
 Currently, the coding errors seem to be well under control.  Need further Roku usage testing. (2/18/2014)
 
