@@ -1,3 +1,8 @@
+Major cleanup.  Works the same; no new features.  Removed the library imports that PMS already provides. (2/27/2014)
+Includes a very minor code mod to one file in PMS due to a coding error.  See the PMS bug fix folder.
+Roku does not update the Screen, even if PMS has new data for that screen.  Still looking into how to
+accomplish this without having to exit and re-enter the Channel.
+
 Working more reliably than ever.  UI is in pretty good shape.  Seems to play nice with Roku.  (2/23/2014)
 
 Currently, the coding errors seem to be well under control.  Need further Roku usage testing. (2/18/2014)
@@ -29,6 +34,7 @@ does not result in a popup on the user interaface informing the user of the erro
 How do you generate such an error message popup?
 ????? This is partially fixed.  It displays the error message, but when the pref is corrected, it will display the message again sometimes; like the first time after it is corrected and whenever you return to the MainMenu.
 It is like the message object is still attached to the main menu and active.
+**** This is fixed.  Had to set header='' and message='' in the ObjectContainer when created in MainMenu.
 
 
 
@@ -40,7 +46,7 @@ This sometimes never leaves the app start method StartApp() for some reason.
 
 
 The code for configuring VLC when started outside the plugin is not complete.  I'm not sure it can be done without restarting VLC.
-**** Have to restart VLC.  Cannot change the launch configuration parameters with the web interface.
+**** Have to restart VLC.  Cannot change the launch configuration parameters using the web interface. This is not a fix, it is just the way it is.
 
 
 
@@ -62,10 +68,12 @@ Added a choice for transcoding or no transcoding.
 
 I now know that VLC will provide meta data for the stream.  This is not yet implemented. This may only be applicable for no transcoding, since the meta data appears to be for the source stream, not transcoded stream.
 **** Partially implemented.
+**** Resolved: Implemented as much as I could without using URL sources.  Done.
 
 
 
 When using the URL Service, when viewing the stream and you backarrrow one level and then Play again, and select resolution, it then becomes a download.  It only goes back to playing the stream if you back out another level.
 ????? I have no idea why this happens.
 ***** The Youtube and Khan Plex channels have this issue also.  It appears to be a problem in PMS.
+***** Resolved: This is a Plex/Web or Plex Media Manager issue.  It does not occur on Roku.
 

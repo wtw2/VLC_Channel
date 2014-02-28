@@ -1,0 +1,16 @@
+Where:
+C:\Program Files (x86)\Plex\Plex Media Server\Resources\Plug-ins\Framework.bundle\Contents\Resources\Versions\2\Python\Framework\components
+
+What:
+networking.py
+def set_http_password(...)
+Line 426:
+Change:
+if _global_http_auth_enabled:
+To:
+if self._global_http_auth_enabled:
+
+
+Credit:
+https://forums.plex.tv/index.php/topic/53519-httpsetpassword-error/
+
