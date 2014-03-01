@@ -2,8 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.plexapp.plugins.vlcplayer</string>
+	<key>CFBundleVersion</key>
+	<string>0.8</string>
 	<key>PlexClientPlatformExclusions</key>
 	<string></string>
 	<key>PlexClientPlatforms</key>
@@ -42,5 +46,9 @@
 			</array>
 			</dict>
 	</dict>
+	<key>PlexPluginDevMode</key>
+	<string>1</string>
+	<key>PlexPluginDebug</key>
+	<string>1</string>
 </dict>
 </plist>

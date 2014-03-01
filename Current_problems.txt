@@ -1,3 +1,8 @@
+3/1/2014
+Minor adjustments.  However, a bug fix to PMS (included in a folder) is required.  Also, a change to the Roku Plex channel plugin (also included in a folder) is beneficial, though not required.
+It is working pretty much how I want it to work.  There is still a slow stream retrieval process that is probably due to an automatic transcoding issue that needs to be resolved.
+
+
 Major cleanup.  Works the same; no new features.  Removed the library imports that PMS already provides. (2/27/2014)
 Includes a very minor code mod to one file in PMS due to a coding error.  See the PMS bug fix folder.
 Roku does not update the Screen, even if PMS has new data for that screen.  Still looking into how to

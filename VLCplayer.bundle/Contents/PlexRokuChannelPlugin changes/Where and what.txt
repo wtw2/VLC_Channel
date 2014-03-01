@@ -1,0 +1,22 @@
+Where:
+C:\Users\User\Downloads\Additional Software\Plex Media Server\Roku fix\roku-client-public-refresh-home-on-view\Plex\source
+
+What:
+in -> PreferenceScreen.brs
+
+Replace the file.
+All changes are tagged with: ' WTW
+added a new Function:
+-> posterActivate(screen)
+
+
+Purpose:
+This change works, but is not perfect for general channel usage.  It does not seem to interfere with the other channels I tried.  But I didn't try many.
+When returning to a screen in a channel from a message screen (not the back arrow), the change reloads the screen to reflect changes to that screen made by the channel running in PMS.
+The VLC Channel does this so that the user can see changes to the VLC player state.
+ex:
+Play VLC -> VLC Playing
+Pause VLC -> VLC Paused
+Stop VLC -> VLc Stopped
+The Video clip object icon will only appear if VLC is playing. (You cannot view a stream that does not exist. You are viewing the output stream of VLC.).
+It will not appear otherwise.

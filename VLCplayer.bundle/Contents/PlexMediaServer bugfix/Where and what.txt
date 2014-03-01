@@ -2,8 +2,8 @@ Where:
 C:\Program Files (x86)\Plex\Plex Media Server\Resources\Plug-ins\Framework.bundle\Contents\Resources\Versions\2\Python\Framework\components
 
 What:
-networking.py
-def set_http_password(...)
+in -> networking.py
+in -> def set_http_password(...)
 Line 426:
 Change:
 if _global_http_auth_enabled:
@@ -14,3 +14,17 @@ if self._global_http_auth_enabled:
 Credit:
 https://forums.plex.tv/index.php/topic/53519-httpsetpassword-error/
 
+
+
+
+The following change set the Plex Framework to development mode so that it is not automatically replaced
+see: https://plexapp.zendesk.com/hc/en-us/articles/201382293-A-GitHub-Guide-To-Fixing-a-Channel
+then: "Work in Progress" section.
+Where:
+C:\Program Files (x86)\Plex\Plex Media Server\Resources\Plug-ins\Framework.bundle\Contents\
+What:
+in -> Info.plist
+Change: (setting from 0 to 1)
+	<key>PlexPluginDevMode</key>
+
+	<string>1</string>

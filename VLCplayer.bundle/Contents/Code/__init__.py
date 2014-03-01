@@ -6,6 +6,8 @@
 #import demjson => Use Plex Framework: JSON
 # => urllib.urlopen('http://:ok@127.0.0.1:5555/requests/status.json') works
 #import urllib # for urlopen => Use Plex Framework: HTTP:Request()
+
+# Used in: AppHandleCheck(); StopApp(); AppRunning(); StartApp
 # to launch/exit/get_info an application
 import os, subprocess, signal # for os.path and os.kill
 import ctypes # for ctypes.windll
@@ -18,6 +20,7 @@ import errno
 
 # http://dev.plexapp.com/docs/api/constkit.html
 # http://dev.plexapp.com/docs/genindex.html
+# http://dev.plexapp.com/docs/api/objectkit.html
 
 # VLC output parameters:
 #1) :sout=#transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}:http{mux=ts,dst=:11223/stream.ts} :sout-all :sout-keep
@@ -30,6 +33,9 @@ import errno
 # https://wiki.videolan.org/VLC_HTTP_requests/
 # an alternative:
 # http://n0tablog.wordpress.com/2009/02/09/controlling-vlc-via-rc-remote-control-interface-using-a-unix-domain-socket-and-no-programming/
+####################################################################################################
+# IMPORTANT: READ! (especially "Work in Progress")
+# https://plexapp.zendesk.com/hc/en-us/articles/201382293-A-GitHub-Guide-To-Fixing-a-Channel
 ####################################################################################################
 #	Device uri
 # https://wiki.videolan.org/Documentation:Advanced_Use_of_VLC/
@@ -46,7 +52,7 @@ import errno
 # Multicast UDP/RTP stream (sent by VLC's stream output)=> vlc rtp://@multicast_address.com:port
 # 
 ####################################################################################################
-# Last updated: 02/27/2014
+# Last updated: 03/1/2014
 #
 # Issues:
 # When adding a DirectoryObject to an ObjectContainer (and nothing else), there must be at least two
@@ -589,7 +595,7 @@ def MainMenu():
 	else:
 		text = "Pause VLC"
 	oc.add(DirectoryObject(key = Callback(PauseVLC, vlc=vlc_json), title = text, thumb = R(T_PAUSE)))
-	if Dict['VLC_state'] == VLC_states.stopped:
+	if Dict['VLC_state'] == VLC_states.stopped and int(Dict['VLCpid']) > 0:
 		text = "VLC is Stopped"
 	else:
 		text = "Stop VLC"
@@ -936,8 +942,7 @@ def GetStatusMetaVLC(url):
 		Log.Debug("EXECUTING: GetStatusMetaVLC()")
 		try:
 			page = HTTP.Request(url).content
-			oc = ObjectContainer(title1='Status Results', message=page)
-#			oc = ObjectContainer(title1='Status Results', message='')
+			oc = ObjectContainer(header='Status Results', message=page)
 #			oc.add(DirectoryObject(key = Callback(StatusResults), title = "VLC Status", summary = page, thumb = R(T_STATUS)))
 			Log.Debug('STATUS: '+page)
 		except:
