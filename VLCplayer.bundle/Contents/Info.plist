@@ -50,5 +50,6 @@
 	<string>1</string>
 	<key>PlexPluginDebug</key>
 	<string>1</string>
-</dict>
+    <key>PlexPluginCodePolicy</key>
+    <string>Elevated</string></dict>
 </plist>

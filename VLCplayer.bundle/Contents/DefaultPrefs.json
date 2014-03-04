@@ -19,9 +19,10 @@
 		"label": 	"VLC stream transcoding string(s)",
 		"type": 	"enum",
 		"values":	[ "none"
+					, "transcode{vcodec=h264,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 					, "transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 					],
-		"default": 	"transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}"
+		"default": 	"transcode{vcodec=h264,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 	},
 	
 	{
@@ -30,6 +31,7 @@
 		"type": 	"enum",
 		"values":	[ "none"
 					, "mux=ts"
+					, "mux=ts{use-key-frames}"
 					],
 		"default": 	"mux=ts"
 	},
