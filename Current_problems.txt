@@ -1,3 +1,7 @@
+3/5/2014:
+PMS bug fix is deployed.  Removed the folder.  Very minor changes.
+
+
 3/3/2014:
 Fixed some issues with preferences.  Additional cleanup. Sill trying to speed up the start of playback.
 Still requires the PMS bug fix (provided) and is easier to use with the Roku Plex Channel mod (which may be beyond some users' ability or desire).
