@@ -23,11 +23,20 @@ import errno
 # http://dev.plexapp.com/docs/api/objectkit.html
 
 # VLC output parameters:
+# https://wiki.videolan.org/Documentation:Streaming_HowTo/Advanced_Streaming_Using_the_Command_Line/
 #1) :sout=#transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}:http{mux=ts,dst=:11223/stream.ts} :sout-all :sout-keep
-# vb = video bitrate
-# ab = audio bitrate
+# vb = video bitrate: kbps
+# ab = audio bitrate: kbps
+# fps = frames per second
+# width
+# height
 # acodec = mpga => MP3
 # mux = ts => Transport Stream
+# NTSC 486i - 243 interlaced (240p: 320x240), 29.97 fps, 4:3 (W:H)
+# 360p - 480x360 - 4:3 | 640x360 - 16:9
+# 480p - 720x480
+# 720p - 1280x720
+# 1080p - 1920x1080
 # http://:ok@127.0.0.1:5555/requests/README.txt
 # http://www.videolan.org/developers/vlc/share/lua/intf/modules/httprequests.lua
 # https://wiki.videolan.org/VLC_HTTP_requests/
@@ -52,7 +61,7 @@ import errno
 # Multicast UDP/RTP stream (sent by VLC's stream output)=> vlc rtp://@multicast_address.com:port
 # 
 ####################################################################################################
-# Last updated: 03/3/2014
+# Last updated: 03/5/2014
 #
 # Issues:
 # When adding a DirectoryObject to an ObjectContainer (and nothing else), there must be at least two
@@ -111,6 +120,7 @@ VLC_CON      = '/?control='
 PLEX_PREFS   = 'http://localhost:32400/:/plugins/com.plexapp.plugins.vlcplayer/prefs/set?'
 
 VLC_HLS      = ''
+# VLC HTTP Live Stream (this is not HLS or DASH as it does not send a live stream, a server is requird to stream the files)
 # The HLS process creates a series of files from the stream.  Could this be faster and better than trying to view the stream on the fly?
 # From=> https://wiki.videolan.org/Documentation:Streaming_HowTo/Streaming_for_the_iPhone/
 # See also=> http://en.wikipedia.org/wiki/HTTP_Live_Streaming
@@ -592,7 +602,7 @@ def MainMenu():
 #			vco.add(mo) # not necessary, it is added in: ServiceCode.pys
 			Log.Debug('CALLING URL SERVICE')
 		else:
-			key_string = Dict['PLselect']
+			key_string = Dict['PLselect'] # the selected item uri string
 			if not key_string:
 				key_string = 'VLC Player rating_key'
 #			Log.Debug('>>>> Selected_uri= '+key_string)
@@ -1559,7 +1569,7 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 #	types = demjson.encode(Container) # Framework.api.constkit.Containers -> can't convert to JSON
 #	Log.Debug("### "+Container.MP4)
 
-	# When a Metadata calls originally_available_at will be a string object instead of a datetime object
+	# When a Metadata call, originally_available_at will be a string object instead of a datetime object
 	if isinstance(originally_available_at, str):
 		# when the Quality is selected, the automatic encoding changes the space between the date and time to a '+'
 		originally_available_at = originally_available_at.replace('+',' ')
@@ -1580,18 +1590,18 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 		originally_available_at = originally_available_at,
 		duration = duration,
 		genres = genres,
-		items = MediaObjectsForURL(url)
-#		items = [
-#			MediaObject(
-#				parts = [PartObject(key=url)],
-#				container = 'mpegts', # no Container.MPEGTS
-#				video_codec = VideoCodec.H264,
-#				video_resolution = '360',
-#				audio_codec = AudioCodec.MP3,
-#				audio_channels = 2,
-#				optimized_for_streaming = True
-#			)
-#		]
+#		items = MediaObjectsForURL(url)
+		items = [
+			MediaObject(
+				parts = [PartObject(key=url, duration=duration)],
+				container = 'mpegts', # no Container.MPEGTS
+				video_codec = VideoCodec.H264,
+				video_resolution = '360',
+				audio_codec = AudioCodec.MP3,
+				audio_channels = 2,
+				optimized_for_streaming = True
+			)
+		]
 	)
 
 	if str(include_container) == 'True': # a Metadata call
@@ -1612,7 +1622,8 @@ def MediaObjectsForURL(url):
 		index = VLC_VIDEO_FORMATS.index(fmt)
 		
 		items.append(MediaObject(
-#			parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt=fmt))],
+#			parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt=fmt))], # -> Cannot load M3U8
+#			parts = [PartObject(key=HTTPLiveStreamURL(url))], # No playable sources found
 			parts = [PartObject(key=url)],
 			container = VLC_CONTAINERS[index],
 			video_codec = VLC_VIDEOCODEC[index],
@@ -1632,7 +1643,7 @@ def PlayVideo(url=None, default_fmt=None, **kwargs):
 	if not url:
 		return None
 	return IndirectResponse(VideoClipObject, key=url)
-#	return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url)) # no better than one above
+#	return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url))
 #	return Redirect(url) # this results in a file download of the stream
 
 ####################################################################################################

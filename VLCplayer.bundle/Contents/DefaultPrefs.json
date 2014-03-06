@@ -21,6 +21,7 @@
 		"values":	[ "none"
 					, "transcode{vcodec=h264,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 					, "transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}"
+					, "transcode{vcodec=h264,width=480,height=360,fps=29.97,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 					],
 		"default": 	"transcode{vcodec=h264,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 	},
