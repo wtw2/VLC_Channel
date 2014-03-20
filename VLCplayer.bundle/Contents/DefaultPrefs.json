@@ -1,5 +1,13 @@
 [
 	{
+		"id": 		"start_delay",
+		"label": 	"Delayed Start",
+		"type": 	"enum",
+		"values":	["none", "standard", "extended"],
+		"default": 	"standard"
+	},
+	
+	{
 		"id": 		"url_service",
 		"label": 	"Use URL Service",
 		"type": 	"bool",
@@ -20,10 +28,10 @@
 		"type": 	"enum",
 		"values":	[ "none"
 					, "transcode{vcodec=h264,acodec=mpga,ab=128,channels=2,samplerate=44100}"
-					, "transcode{vcodec=h264,vb=800,acodec=mpga,ab=128,channels=2,samplerate=44100}"
-					, "transcode{vcodec=h264,width=480,height=360,fps=29.97,acodec=mpga,ab=128,channels=2,samplerate=44100}"
+					, "transcode{vcodec=h264,vb=800,fps=30,acodec=mp2a,ab=128,channels=2,samplerate=44100}"
+					, "transcode{vcodec=h264,width=540,height=360,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 					],
-		"default": 	"transcode{vcodec=h264,acodec=mpga,ab=128,channels=2,samplerate=44100}"
+		"default": 	  "transcode{vcodec=h264,acodec=mpga,ab=128,channels=2,samplerate=44100}"
 	},
 	
 	{
@@ -34,7 +42,7 @@
 					, "mux=ts"
 					, "mux=ts{use-key-frames}"
 					],
-		"default": 	"mux=ts"
+		"default": 	  "mux=ts"
 	},
 	
 	{

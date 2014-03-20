@@ -1,3 +1,7 @@
+3/19/2014:
+Changes to try to get this app to play streams from urls where the stream has a long delay (about 20 seconds) or so.  Still trying to get the Roku to start playing the stream sooner that 3&1/2 minutes after telling it to start.
+
+
 3/5/2014:
 PMS bug fix is deployed.  Removed the folder.  Very minor changes.
 
