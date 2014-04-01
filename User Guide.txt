@@ -39,7 +39,7 @@ VLC Source (used raw) - the full URI required by VLC to access a streamable or s
 
 Main Menu: (all controls provide feedback messages for clarity)
 
-Play VLC Stream - this launches the Plex video player to view the VLC output stream.
+Play VLC Stream - this is used to have Plex start its stream to the client video player to view the VLC output stream.
 Play List - opens another directory level for Playlist control
 Play VLC - [For Delayed Start = none] Starts VLC playing the currently selected item and confirms that play started.
            [For Delayed Start = satndard] Starts and immediately pauses VLC.  This allows VLC to finalize the connection while Plex is not waiting to avoid a timeout. The pending/ready status can be checked, but not too quickly since VLC does not update it fast enough.  I'm working on this. (Use: Play/Pause/Refresh to check)
