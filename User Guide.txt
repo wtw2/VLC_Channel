@@ -1,4 +1,4 @@
-Setting in the code specific to the developer: (except for "fq_file" (see below), I believe that the channel should work without code modifications)
+Settings in the code that are specific to the developer: (except for "fq_file" (see below), I believe that the channel should work without code modifications)
 
 C:\Users\User\AppData\Local\Plex Media Server\Plug-ins\VLCplayer.bundle\Contents\URL Services\VLCplayer\ServiceCode.pys
 The IP addresses and port numbers ->
@@ -20,10 +20,12 @@ fq_url
 
 SETTINGS:
 
+Delayed Start - standard delays the video start 5 seconds after the player is invoked by Plex.
+                none allows you to actually start the video and then attach on the fly.
 Use URL Service checkbox - if checked the channel uses the Plex URL service system, otherwise everything is configured explicitly.
 Transcode the stream?  yes/no - if yes the stream is transcoded (see the __init__.py file, VLC_ARGS1)
 VLC stream transcoding string(s) - only one currently configured, easily changed in DefaultPrefs.json
-VLC stream mux String(s) - only one currently configured, easily changed in DefaultPrefs.json
+VLC stream mux String(s) - the first is all I am testing with now, easily changed in DefaultPrefs.json
 VLC Host IP: The IP address for the VLC output stream and the web interface. This is checked using a regular expression pattern
 VLC Host Port for stream - (what it says) This is checked using a regular expression pattern
 VLC Host {/Path/}Page -> space for none - the VLC path/page reference set for the output stream. This is checked using a regular expression pattern
@@ -39,7 +41,8 @@ Main Menu: (all controls provide feedback messages for clarity)
 
 Play VLC Stream - this launches the Plex video player to view the VLC output stream.
 Play List - opens another directory level for Playlist control
-Play VLC - Starts VLC playing the currently selected item
+Play VLC - [For Delayed Start = none] Starts VLC playing the currently selected item and confirms that play started.
+           [For Delayed Start = satndard] Starts and immediately pauses VLC.  This allows VLC to finalize the connection while Plex is not waiting to avoid a timeout. The pending/ready status can be checked, but not too quickly since VLC does not update it fast enough.  I'm working on this. (Use: Play/Pause/Refresh to check)
 Pause VLC - Pause VLC playing (toggle) 
 Stop VLC - Stop VLC playing
 Launch VLC - This starts up the VLC application and syncs the playlists automatically

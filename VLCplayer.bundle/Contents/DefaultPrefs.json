@@ -3,7 +3,7 @@
 		"id": 		"start_delay",
 		"label": 	"Delayed Start",
 		"type": 	"enum",
-		"values":	["none", "standard", "extended"],
+		"values":	["none", "standard"],
 		"default": 	"standard"
 	},
 	
