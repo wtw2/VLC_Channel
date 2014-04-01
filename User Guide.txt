@@ -59,7 +59,7 @@ Refresh - refreshes this directory
 Playlist Menu: (The currently selected item does not have a folder icon)
 A list of current VLC play items appears first
 ...
-SYNC -> VLC Playlist - synchronizes teh Playlist in this Channel with the one on VLC
+SYNC -> VLC Playlist - synchronizes the Playlist in this Channel with the one on VLC
 CLEAR -> VLC Playlist - deletes all items in the playlist in the VLC application
 ADD -> Plex Playlist to VLC - This only adds what is in this Channel's playlist that is not in VLC's
 REPLACE -> Plex Playlist with VLC - Replaces (does not merge) this Channel's playlist with the VLC playlist
