@@ -1,0 +1,12 @@
+Where:
+C:\Users\User\AppData\Local\Plex Media Server\Plug-ins\WebClient.bundle\Contents\Resources\js
+
+What:
+in -> plex.js
+
+Replace the file.
+
+
+Purpose:
+This changes 3 timeout values to 60 seconds. -> {timeout:6e4}
+See lines 1073 and 1799
