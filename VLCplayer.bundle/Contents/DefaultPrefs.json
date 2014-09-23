@@ -3,7 +3,7 @@
 		"id": 		"start_delay",
 		"label": 	"Delayed Start",
 		"type": 	"enum",
-		"values":	["none", "standard"],
+		"values":	["none", "standard", "direct"],
 		"default": 	"standard"
 	},
 	
@@ -101,5 +101,12 @@
 		"label": 	"VLC source (used raw)",
 		"type": 	"text",
 		"default": 	""
+	},
+	
+	{
+		"id":		"vlc_exe",
+		"label": 	"VLC executable",
+		"type": 	"text",
+		"default": 	"C:\/Program Files (x86)\/VideoLAN\/VLC\/vlc.exe"
 	}
 ]

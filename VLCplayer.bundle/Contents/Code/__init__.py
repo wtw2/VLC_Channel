@@ -12,7 +12,7 @@
 import os, subprocess, signal # for os.path and os.kill
 import ctypes # for ctypes.windll
 import errno
-import socket
+#import socket -> see MainMenu(0
 # for processing CSV strings
 #import csv => csv not needed, regex can do it, see: AppRunning()
 #import ast # for literal_eval  => Use Plex Framework: JSON -> encode Dict parameters for Callbacks
@@ -20,7 +20,7 @@ import socket
 ####################################################################################################
 # DEVELOPMENT LINKS:
 #
-# http://cs6-8v4.vk.me/p15/6c0a9bfab400.360.mp4 -> 3/31/2014
+# http://cs6-8v4.vk.me/p15/822f5915a041.360.mp4 -> 4/1/2014
 #
 #  Plex:
 # http://dev.plexapp.com/docs/api/constkit.html
@@ -45,6 +45,7 @@ import socket
 # http://www.videolan.org/developers/vlc/share/lua/intf/modules/httprequests.lua
 # https://wiki.videolan.org/VLC_HTTP_requests/
 # https://wiki.videolan.org/Documentation:Advanced_Use_of_VLC/
+# http://www.videolan.org/doc/play-howto/en/apb.html
 #
 # Macros/websites:
 # the html files go in:
@@ -192,7 +193,7 @@ ST_IP_MAP     = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}'
 RE_IP_MAP     = Regex('^%s$' % (ST_IP_MAP))
 ST_PORT_MAP   = '[1-9][0-9]{0,5}'
 RE_PORT_MAP   = Regex('^%s$' % (ST_PORT_MAP))
-ST_PATH_MAP   = '(?P<path>(?P<path2>/)(?(path2)(?:[0-9a-zA-Z _-]+/)+))?' # added space character
+ST_PATH_MAP   = '(?P<path>(?P<path2>/)(?(path2)(?:[0-9a-zA-Z ()_-]+/)+))?' # added space character and parentheses
 ST_FILE_MAP   = '(?P<file>[0-9a-zA-Z _\-\.]+\.[0-9a-zA-Z]{2,4})?' # added space character
 ST_FILE_MAP2  = '((?:[0-9a-zA-Z _\-]+(?P<dot>\.))*(?(dot)[0-9a-zA-Z]{2,4}|[0-9a-zA-Z_\-]*))?' # added space character
 ST_PAGE_MAP   = '%s(?(path2)|/?)%s' % (ST_PATH_MAP, ST_FILE_MAP) # WARNING: allows for filename only (initial slash optional)
@@ -211,7 +212,7 @@ RE_YES_NO     = Regex('^(?i)(?:y(?:es)?|no?)$')
 RE_COMMAS     = Regex('(?:,)(?=(?:[^\"]|\"[^\"]*\")*$)')
 # End Of Line: Windows <CR><LF> or Linux <LF> or <CR> only; split on these, with no capture
 RE_EOL        = Regex('(?:(?:\r\n)?|(?:\n)?|(?:\r)?)')
-RE_FILE       = Regex('^(?:file:///)?(.*)')
+RE_FILE       = Regex('^(?:file:///)(.*)')
 RE_STAT_URI   = Regex('.*(?:uri="([^"]*))')
 RE_STAT_ID    = Regex('.*(?:id="([^"]*))')
 RE_STAT_DUR   = Regex('.*(?:duration="([^"]*))')
@@ -364,6 +365,16 @@ def InitializePrefs():
 	
 	Dict['current_setting']['fq_uri'] = Prefs['fq_uri']
 
+	vlc_exe = Prefs['vlc_exe'] # similar to: fq_file
+	if vlc_exe:
+		vlc_exe = vlc_exe.replace('\\', '/') # change backslashes to frontslashes for pattern match
+		match = RE_FQFILE_MAP.search(vlc_exe)
+		if match == None:
+			u = HTTP.Request(PLEX_PREFS+'vlc_exe=').content
+		elif vlc_exe != Prefs['vlc_exe']:
+			u = HTTP.Request(PLEX_PREFS+'vlc_exe='+vlc_exe.replace(' ', '%20')).content
+	Dict['current_setting']['vlc_exe'] = Prefs['vlc_exe']
+
 	SetVLCurls()	
 	return
 
@@ -472,6 +483,20 @@ def ValidatePrefs():
 		if Prefs['fq_uri']:
 			Dict['Streams'].update({'uri':{'type': '', 'fq_uri': 'fq_uri'}})
 	Log.Debug("URI: fq_uri= "+ClearNoneString(Prefs['fq_uri']))
+
+	vlc_exe = Prefs['vlc_exe'] # similar to: fq_file
+	if vlc_exe:
+		vlc_exe = vlc_exe.replace('\\', '/') # change backslashes to frontslashes for pattern match
+		if not os.path.isfile(vlc_exe): # see if file exists
+			Log.Debug("FILE: vlc_exe= NONEXISTENT")
+		else:
+			match = RE_FQFILE_MAP.search(vlc_exe)
+			if match != None:
+				if vlc_exe != Dict['current_setting']['vlc_exe']:
+					Dict['current_setting']['vlc_exe'] = vlc_exe
+				Log.Debug("FILE  vlc_exe= "+match.group(0))
+			else:
+				Log.Debug("FILE: vlc_exe= INVALID")
 	
 	SetVLCurls()
 	Log.Debug("VLC: params= "+Dict['app']['app_stream'])
@@ -530,7 +555,8 @@ def SetVLCurls():
 
 #	fq_file = '"'+str(Dict['current_setting']['fq_file']).replace('/', '\\')+'"' # change frontslashes to backslashes (Windows)
 	fq_file = 'file:///'+str(Dict['current_setting']['fq_file']).replace(' ', '%20')
-	Dict['app'] = {'app_app':VLC_APP, 'app_file':fq_file, 'app_args':vlc_args, 'app_stream':vlc_stream, 'vlc':{'url_vlc':url_vlc, 'url_cmd':url_vlc_cmd, 'cmd_stop':'pl_stop', 'cmd_pause':'pl_pause', 'cmd_play':'pl_play', 'cmd_play_id':'pl_play&id=', 'cmd_delete_id':'pl_delete&id=', 'url_meta':url_vlc_meta}}
+	vlc_exe = str(Dict['current_setting']['vlc_exe']) # replace VLC_APP
+	Dict['app'] = {'app_app':vlc_exe, 'app_file':fq_file, 'app_args':vlc_args, 'app_stream':vlc_stream, 'vlc':{'url_vlc':url_vlc, 'url_cmd':url_vlc_cmd, 'cmd_stop':'pl_stop', 'cmd_pause':'pl_pause', 'cmd_play':'pl_play', 'cmd_play_id':'pl_play&id=', 'cmd_delete_id':'pl_delete&id=', 'url_meta':url_vlc_meta}}
 	return
 	
 ####################################################################################################
@@ -545,17 +571,21 @@ def PrefValidationNotice():
 
 	match = RE_IP_MAP.search(Prefs['vlc_host'])
 	if match == None:
+		Thread.ReleaseLock('valid')
 		return ObjectContainer(header="Settings Error", message="The IP address setting is invalid.")
 
 	match = RE_PORT_MAP.search(Prefs['vlc_port_stream'])
 	if match == None:
+		Thread.ReleaseLock('valid')
 		return ObjectContainer(header="Settings Error", message="The IP stream port setting is invalid.")
 
 	match = RE_PORT_MAP.search(Prefs['vlc_port_control'])
 	if match == None:
+		Thread.ReleaseLock('valid')
 		return ObjectContainer(header="Settings Error", message="The IP control port setting is invalid.")
 
 	if Prefs['password'] == None:
+		Thread.ReleaseLock('valid')
 		return ObjectContainer(header="Settings Error", message="The password setting is invalid.")
 
 	str_page = Prefs['vlc_page']
@@ -567,16 +597,19 @@ def PrefValidationNotice():
 	
 	match = RE_PAGE_MAP.search(str_page)
 	if match == None:
+		Thread.ReleaseLock('valid')
 		return ObjectContainer(header="Settings Error", message="The page setting is invalid.")
 
 	url_vlc = 'http://%s:%s%s' % (Prefs['vlc_host'], Prefs['vlc_port_stream'], str_page) # dynamic
 	match = RE_URL_MAP.search(url_vlc)
 	if match == None:
+		Thread.ReleaseLock('valid')
 		return ObjectContainer(header="Settings Error", message="The settings do not result in a valid url.")
 
 	if Dict['current_setting']['fq_file']:
 		match = RE_FQFILE_MAP.search(Dict['current_setting']['fq_file'])
 		if match == None:
+			Thread.ReleaseLock('valid')
 			return ObjectContainer(header="Settings Error", message="The FQ File setting is invalid.")
 		elif Dict['current_setting']['fq_file'] != Prefs['fq_file']:
 			u = HTTP.Request(PLEX_PREFS+'fq_file='+Dict['current_setting']['fq_file'].replace(' ', '%20')).content
@@ -584,7 +617,19 @@ def PrefValidationNotice():
 	if Dict['current_setting']['fq_url']:
 		match = RE_URL_MAP2.search(Dict['current_setting']['fq_url'])
 		if match == None:
+			Thread.ReleaseLock('valid')
 			return ObjectContainer(header="Settings Error", message="The FQ URL setting is invalid.")
+
+	if Dict['current_setting']['vlc_exe']:
+		if not os.path.isfile(Dict['current_setting']['vlc_exe']): # see if file exists
+			Thread.ReleaseLock('valid')
+			return ObjectContainer(header="Settings Error", message="The FQ VLC executable does not exist.")
+		match = RE_FQFILE_MAP.search(Dict['current_setting']['vlc_exe'])
+		if match == None:
+			Thread.ReleaseLock('valid')
+			return ObjectContainer(header="Settings Error", message="The FQ VLC executable setting is invalid.")
+		elif Dict['current_setting']['vlc_exe'] != Prefs['vlc_exe']:
+			u = HTTP.Request(PLEX_PREFS+'vlc_exe='+Dict['current_setting']['vlc_exe'].replace(' ', '%20')).content
 
 	Log.Debug("PASSED: PrefValidationNotice()")
 	Thread.ReleaseLock('valid')
@@ -603,12 +648,8 @@ def MainMenu():
 #	socket.setdefaulttimeout(60.0)
 #	Log.Debug(JSON.StringFromObject(socket.getdefaulttimeout()))
 	
-	# Check to see if VLC is actually running
-	Dict['VLCpid'] = AppRunning(VLC_APP_FILE)
-	Dict['VLCconfigured'], vlc_proc = AppHandleCheck(vlc_proc, VLC_APP, Dict['VLCconfigured'])
-	
 	InitializePrefs()
-
+	
 #	do = DirectoryObject(key = Callback(SecondMenu), title = "Example Directory") # Don't add: Example Directory
 	
 	voc = PrefValidationNotice()
@@ -620,6 +661,11 @@ def MainMenu():
 		Thread.ReleaseLock('main')
 		return voc
 	
+	# Check to see if VLC is actually running
+	Dict['VLCpid'] = AppRunning(VLC_APP_FILE)
+	vlc_exe = str(Dict['current_setting']['vlc_exe']) # replace VLC_APP
+	Dict['VLCconfigured'], vlc_proc = AppHandleCheck(vlc_proc, vlc_exe, Dict['VLCconfigured'])
+
 	# properties can be filled by parameters in the "New" or set as properties above
 #	oc = ObjectContainer(title1=NAME, art=R(ART))
 	# The following is required to eliminate a persisting error message (when generated) from PrefValidationNotice()
@@ -676,7 +722,6 @@ def MainMenu():
 			vco = CreateVideoClipObject(url_vlc, Dict['Today'], url_meta=vlc['url_meta'], key_string=key_string) # date only
 		oc.add(vco)
 	
-	# https://wiki.videolan.org/VLC_HTTP_requests/
 	oc.add(DirectoryObject(key = Callback(PlayListVLC, vlc=vlc_json), title = "Play List", thumb = R(T_PLAYLIST)))
 	if Dict['VLC_state'] == VLC_states.playing or Dict['VLC_state'] == VLC_states.paused:
 		text = "VLC is Playing"
@@ -699,12 +744,13 @@ def MainMenu():
 	oc.add(DirectoryObject(key = Callback(GetStatusMetaVLC, url=vlc['url_meta']), title = "Status VLC", thumb = R(T_STATUS)))
 	oc.add(DirectoryObject(key = Callback(Refresh, vlc=vlc_json), title = "Refresh VLC State", thumb = R(T_REFRESH)))
 
-	# the problem with removing a VCO is not limited to the MainMenu:
+	# the Plex/Web problem with removing a VCO is not limited to the MainMenu:
 #	oc.add(DirectoryObject(key = Callback(SecondMenu, url=url_vlc, date=Dict['Today'], url_meta=vlc['url_meta']), title = "Second Menu", thumb = ''))
 
 	# add the settings/preferences object/icon
-	oc.add(PrefsObject(title = L('Preferences')))
-#	oc.add(InputDirectoryObject(title=L('Search'), key=Callback(SearchMenu))) # The "Search" bubble
+	oc.add(PrefsObject(title = L('Settings')))
+#	oc.add(InputDirectoryObject(title=L('Search'), key=Callback(PLNew), prompt = 'Search')) # The "Search" bubble
+	# It always prompts "Search VLC Player" on Plex/Web; no prompt on Roku
 #	details = demjson.encode(oc) -> JSONEncodeError('can not encode object into a JSON representation',obj)
 #	Log.Debug(details)
 
@@ -720,10 +766,14 @@ def Refresh(vlc):
 	Thread.AcquireLock('main')
 	Log.Debug("EXECUTING: Refresh()")
 	oc = ObjectContainer(header="Refresh", message="Updated VLC player status.")
+	if not os.path.isfile(Dict['current_setting']['vlc_exe']): # see if file exists
+		Thread.ReleaseLock('main')
+		return ObjectContainer(header="Refresh Error", message="The FQ VLC executable in SETTINGS does not exist.")
 	if vlc:
 		if isinstance(vlc, str):
 			vlc = JSON.ObjectFromString(vlc)
 		elif not isinstance(vlc, dict):
+			Thread.ReleaseLock('main')
 			return ObjectContainer(header="Refresh Error", message="Refresh() was called with an inappropriate parameter.")
 		if int(Dict['VLCpid']) > 0:
 			Dict['PlayLock'] = True
@@ -1238,7 +1288,10 @@ def PlayListVLC(vlc):
 	if len(Dict['PlayList']) == 0:
 		Log.Debug("PlayList is Empty")
 		oc.add(DirectoryObject(key = Callback(PLEmpty), title = "Play List is Empty", thumb = R(T_EMPTY)))
-	else:
+	# >>> InputDirectoryObject is not yet supported by Plex/Web
+#	oc.add(InputDirectoryObject(key = Callback(PLNew), title = 'New Item', thumb = R(T_MOVIE), summary = 'Add a New Playlist URI', prompt='')) # This is not displayed by Plex/Web
+	# Prompt text is not displayed.  If it is "Search", it presents the Search screen, else it presents the Data input screen
+	if len(Dict['PlayList']) > 0:
 		for item in Dict['PlayList']:
 			title = str(Dict['PlayList'][item][2])
 			match = RE_PAGE_MAP.search(title)
@@ -1266,6 +1319,21 @@ def PlayListVLC(vlc):
 @route(PREFIX+'/PLEmpty')
 def PLEmpty():
 	oc = ObjectContainer(title1='PLEmpty')
+	return oc
+	
+####################################################################################################
+@route(PREFIX+'/PLNew')
+def PLNew(query):
+	Log.Debug("EXECUTING: PLNew()")
+	oc = ObjectContainer(title1='PLNew')
+	oc.add(DirectoryObject(key = Callback(PLNew2), title = 'Test', thumb = R(T_EMPTY)))
+	return oc
+	
+####################################################################################################
+@route(PREFIX+'/PLNew2')
+def PLNew2():
+	Log.Debug("EXECUTING: PLNew2()")
+	oc = ObjectContainer(title1='PLNew2')
 	return oc
 	
 ####################################################################################################
@@ -1698,18 +1766,27 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 				Dict['VLC_metadata'] = HTTP.Request(url_meta).content # save the metadata -> VLC source, not VLC output
 		except:
 			Log.Debug('ERROR: VLC meta data retrieval failed.')
-	else: # this is the second Metadata call
+	elif Prefs['start_delay'] != 'direct': # this is the second Metadata call
 		Thread.CreateTimer(0.0, PlayVLCtimer, True, 5) # start VLC after starting the player 
 	if len(Dict['VLC_metadata']) > 0: # hopefully there is metadata
 		details2 = JSON.ObjectFromString(Dict['VLC_metadata'])
 #	Log.Debug('details2= '+JSON.StringFromObject(details2))
+	if Prefs['start_delay'] == 'direct':
+		file = RE_FILE.search(key_string)
+		if file: # is it a file uri -> NOT CURRENTLY SUPPORTED
+			url = file.group(1).replace('+',' ').replace('/','\\')
+		else:
+			url = key_string
+	
+	ext = ''
 	try:
 		title = details2['information']['category']['meta']['filename']
 		if title and len(title) > 0:
 			ext = title.rfind('.')
 			if ext > 0:
-				title = title[0:ext]
 				title2 = title
+				title = title[0:ext]
+				ext = title2[ext+1:]
 		else:
 			raise ValueError('No VLC filename found.')
 	except:
@@ -1723,7 +1800,10 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 		summary = ''
 		if title2:
 			summary = title2 + '\n\n'
-		summary += details['description']
+		if Prefs['start_delay'] != 'direct':
+			summary += details['description']
+		else:
+			summary += 'This video is being streamed by Plex from a direct video URL.'
 	except:
 		summary += 'No description'
 
@@ -1760,12 +1840,30 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 	# Some of this additional information does not appear to help as far as I can tell
 	# The MediaObject information is passed to the stream source url in a query string
 	# VLC ignores that information
+	try:
+		if details2['information']['category']['Stream 0']['Type'] == 'Video':
+			stream_video = details2['information']['category']['Stream 0']
+		elif details2['information']['category']['Stream 1']['Type'] == 'Video':
+			stream_video = details2['information']['category']['Stream 1']
+		else:
+			stream_video = None
+	except:
+		stream_video = None
+	try:
+		if details2['information']['category']['Stream 0']['Type'] == 'Audio':
+			stream_audio = details2['information']['category']['Stream 0']
+		elif details2['information']['category']['Stream 1']['Type'] == 'Audio':
+			stream_audio = details2['information']['category']['Stream 1']
+		else:
+			stream_audio = None
+	except:
+		stream_audio = None
 	vlc_transcode = str(Prefs['vlc_transcode'])
 	try:
 		video_codec = RE_VLC_VC.search(vlc_transcode).group(1)
 	except:
 		try:
-			video_codec = RE_VLC_COD.search(details2['information']['category']['Stream 0']['Codec']).group(1)
+			video_codec = RE_VLC_COD.search(stream_video['Codec']).group(1)
 		except:
 			video_codec = VideoCodec.H264
 	if video_codec == 'avc1':
@@ -1774,7 +1872,7 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 		audio_codec = RE_VLC_AC.search(vlc_transcode).group(1)
 	except:
 		try:
-			audio_codec = RE_VLC_COD.search(details2['information']['category']['Stream 1']['Codec']).group(1)
+			audio_codec = RE_VLC_COD.search(stream_audio['Codec']).group(1)
 		except:
 			audio_codec  = AudioCodec.MP3
 	if audio_codec == 'mpga' or audio_codec == 'mp2a':
@@ -1791,12 +1889,16 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 		video_frame_rate = RE_VLC_FPS.search(vlc_transcode).group(1)
 	except:
 		try:
-			video_frame_rate = details2['information']['category']['Stream 0']['Frame_rate'] # not float!
+			video_frame_rate = stream_video['Frame_rate'] # not float!
 			#video_frame_rate = int(round(float(video_frame_rate)) - .5) + (float(video_frame_rate) > 0)
 		except:
 			video_frame_rate = None
 	try:
-		resolution = details2['information']['category']['Stream 0']['Resolution']
+		audio_bitrate = Regex('\d+').findall(stream_audio['Bitrate'])[0]
+	except:
+		audio_bitrate = None
+	try:
+		resolution = stream_video['Resolution']
 		i = resolution.find('x')
 		width = resolution[:i]
 		height = resolution[i+1:]
@@ -1820,7 +1922,10 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 	except:
 		aspect_ratio = None
 	try:
-		container = RE_VLC_MUX.search(Prefs['vlc_mux']).group(1)
+		if not ext or Prefs['start_delay'] != 'direct':
+			container = RE_VLC_MUX.search(Prefs['vlc_mux']).group(1)
+		else:
+			container = ext
 	except:
 		container = 'ts'
 	if container.find('mp4') >= 0:
@@ -1842,6 +1947,10 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 #		Log.Debug("### STR OAA= "+originally_available_at)
 		originally_available_at = Datetime.ParseDate(originally_available_at)
 		
+	if Prefs['start_delay'] == 'direct': # it doesn't seem to matter which one is used
+		po = [PartObject(key=url, duration=duration)]
+	else:
+		po = [PartObject(key=Callback(PlayVideo, url=url, default_fmt='360p'), duration=duration)]
 	vco = VideoClipObject(
 		# The Callback converts all the arguments to strings
 		key = Callback(CreateVideoClipObject, url=url, originally_available_at=originally_available_at, url_meta=url_meta, key_string=key_string, include_container=True),
@@ -1859,20 +1968,21 @@ def CreateVideoClipObject(url, originally_available_at, url_meta, key_string, in
 		items = [
 			MediaObject(
 #				parts = [PartObject(key=url, duration=duration)] # works about the same as next line
-				parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt='360p'), duration=duration)]
+			#	parts = [PartObject(key=Callback(PlayVideo, url=url, default_fmt='360p'), duration=duration)]
+				parts = po
 				,container = container # no Container.MPEGTS attribute
-				# video_codec & video_resolution are beneficial to Plex for video sync (required)
+				# video_codec & video_resolution are beneficial to Plex for video sync (required for VLC)
 				,video_codec = video_codec
 				,video_resolution = video_resolution
 				,audio_codec = audio_codec
 				,audio_channels = audio_channels
-				,video_frame_rate = video_frame_rate # "29.917"
+				,video_frame_rate = video_frame_rate # "29.917" NTSC
 #				,aspect_ratio = aspect_ratio
 				,duration = duration
 				,width = width
 				,height = height
-				,bitrate = 900 # in Kbps, not bps
-			#	,protocol = protocols
+				,bitrate = 900 # video_bitrate in Kbps, not bps
+#				,protocol = protocols
 				,optimized_for_streaming = True
 			)
 		]
