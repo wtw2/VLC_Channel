@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Video Test</title>
+	</head>
+	<body>
+		<embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" version="VideoLAN.VLCPlugin.2"
+			width="640" height="480" id="vlc"
+			target="http://127.0.0.1:11223/stream.ts">
+		</embed>
+		<object classid="clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921" codebase="http://download.videolan.org/pub/videolan/vlc/last/win32/axvlc.cab"></object>
+		<br/>
+		<script language="Javascript">
+		var vlc = document.getElementById("vlc");
+		//vlc.audio.toggleMute();
+		</script>
+		<!-- https://wiki.videolan.org/Documentation:WebPlugin/ -->
+		<a href="javascript:null();" onclick='document.getElementById("vlc").playlist.play()'>Play</a>
+		<a>&nbsp;&nbsp;&nbsp;&nbsp<a/>
+		<a href="javascript:null();" onclick='document.getElementById("vlc").playlist.pause()'>Pause</a>
+		<a>&nbsp;&nbsp;&nbsp;&nbsp<a/>
+		<a href="javascript:null();" onclick='document.getElementById("vlc").playlist.stop()'>Stop</a>
+		<a>&nbsp;&nbsp;&nbsp;&nbsp<a/>
+		<a href="javascript:null();" onclick='document.getElementById("vlc").video.toggleFullscreen()'>Fullscreen</a>
+	</body>
+</html>
